@@ -3,11 +3,22 @@
 #include "fixed_block_alloc.h"
 #include <stdlib.h>
 
+//!assures block size is aligned to sizeof(void *)
+static inline size_t block_size(size_t initial) {
+    if (initial <= sizeof(void *))
+        return sizeof (void *);
+    if ((initial % sizeof(void *)) == 0)
+        return initial;
+    return sizeof(void *) - (initial % sizeof(void *));
+}
+
+//!malloc wrapper
 static void *fast_alloc_malloc(size_t size, void* params) {
     params = 0; //remove unused variable compiler warnings
     return malloc(size);
 }
 
+//!free wrapper
 static void fast_alloc_free(void* tofree, void * params) {
     params = 0; //remove unused variable compiler warnings
     free(tofree);
@@ -27,7 +38,7 @@ fixed_block create_fixed_block_with(size_t unit_size,
                                     alloc_fn_type alloc,
                                     void *params) {
 
-    size_t data_size = FIXED_BLOCK_SIZE(unit_size);
+    size_t data_size = block_size(unit_size);
     void *block = alloc(data_size * num_units, params);
     
     fixed_block data;
@@ -35,7 +46,7 @@ fixed_block create_fixed_block_with(size_t unit_size,
     data.first_open = data.data_blocks;
     data.data_size = data_size;
 
-    if (FAST_ALLOC_PREDICT(block)) {
+    if (block != NULL) {
 
 #ifdef FAST_ALLOC_DEBUG
         fixed_block.num_elements = num_units;
@@ -47,12 +58,13 @@ fixed_block create_fixed_block_with(size_t unit_size,
             SET_NEXT_BLOCK(start, next_open);
             start = next_open;
         }
+        SET_NEXT_BLOCK(start, NULL);
     }
     return data;
 }
 
 void destroy_fixed_block_with(fixed_block inblock, free_fn_type freefn, void *params) {
-    if(inblock.data_blocks) {
+    if(inblock.data_blocks != NULL) {
         freefn(inblock.data_blocks, params);
     }
 }

@@ -1,7 +1,6 @@
 #ifndef FIXED_BLOCK_ALLOC_H
 #define FIXED_BLOCK_ALLOC_H
 #include <stddef.h>
-#include <stdint.h>
 #include <assert.h>
 
 //template<class T>
@@ -11,10 +10,9 @@
 //};
 
 #define FAST_ALLOC_DEBUG_
-#define FAST_ALLOC_PREDICT(x) x
-#define FAST_ALLOC_PREDICT_NOT(x) !x
+#define FAST_ALLOC_PREDICT(x) (x)
+#define FAST_ALLOC_PREDICT_NOT(x) !(x)
 
-#define FIXED_BLOCK_SIZE(inval) (inval > sizeof(void *) ? inval : sizeof(void *))
 #define GET_BLOCK_DATA(inblock) (inblock)
 #define GET_NEXT_BLOCK(inblock, data_size) ((char *)inblock + data_size)
 #define SET_NEXT_BLOCK(inblock, next) *((void **)inblock) = (void *) next;
@@ -90,7 +88,7 @@ void destroy_fixed_block_with(fixed_block inblock, free_fn_type freefn, void *pa
  * @return A pointer to a unit of memory
  */
 inline void *fixed_block_alloc(fixed_block *inblock) {
-    if (FAST_ALLOC_PREDICT_NOT(inblock->first_open))
+    if (FAST_ALLOC_PREDICT_NOT(inblock->first_open == NULL))
         return NULL;
     void *ret_data = GET_BLOCK_DATA(inblock->first_open);
     inblock->first_open = GET_NEXT_BLOCK(inblock->first_open, inblock->data_size);
@@ -111,7 +109,7 @@ inline void *fixed_block_alloc(fixed_block *inblock) {
  * @params inblock The block to release the pointer from
  */
 inline void fixed_block_free(void *data, fixed_block *inblock) {
-    if (FAST_ALLOC_PREDICT(data)) {
+    if (FAST_ALLOC_PREDICT(data != NULL)) {
 
 #ifdef FAST_ALLOC_DEBUG_
         size_t data_size = inblock->data_size;
@@ -128,7 +126,6 @@ inline void fixed_block_free(void *data, fixed_block *inblock) {
 }
 
 #ifndef BLOCK_IMPL
-#undef FIXED_BLOCK_SIZE
 #undef SET_NEXT_BLOCK
 #undef GET_NEXT_BLOCK
 #undef GET_BLOCK_DATA
