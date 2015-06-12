@@ -1,4 +1,4 @@
-#define BLOCK_IMPL
+#define FAST_ALLOC_IMPL
 
 #include "fixed_block_alloc.h"
 #include <stdlib.h>
@@ -12,17 +12,6 @@ static inline size_t block_size(size_t initial) {
     return sizeof(void *) - (initial % sizeof(void *));
 }
 
-//!malloc wrapper
-static void *fast_alloc_malloc(size_t size, void* params) {
-    params = 0; //remove unused variable compiler warnings
-    return malloc(size);
-}
-
-//!free wrapper
-static void fast_alloc_free(void* tofree, void * params) {
-    params = 0; //remove unused variable compiler warnings
-    free(tofree);
-}
     
 fixed_block create_fixed_block(size_t unit_size,
                                size_t num_units) {

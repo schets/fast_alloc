@@ -1,5 +1,6 @@
 #ifndef FIXED_BLOCK_ALLOC_H
 #define FIXED_BLOCK_ALLOC_H
+#include "common.h"
 #include <stddef.h>
 #include <assert.h>
 
@@ -10,22 +11,10 @@
 //};
 
 #define FAST_ALLOC_DEBUG_
-#define FAST_ALLOC_PREDICT(x) (x)
-#define FAST_ALLOC_PREDICT_NOT(x) !(x)
 
 #define GET_BLOCK_DATA(inblock) (inblock)
 #define GET_NEXT_BLOCK(inblock, data_size) ((char *)inblock + data_size)
 #define SET_NEXT_BLOCK(inblock, next) *((void **)inblock) = (void *) next;
-
-/**
- * A function prototype for an arbitrary allocator
- */
-typedef void *(*alloc_fn_type)(size_t, void *);
-
-/**
- * A function prototype for an arbitrary free function
- */
-typedef void (*free_fn_type)(void *, void *);
 
 /**
  * Contains the data required for a fixed_block allocator
@@ -125,12 +114,12 @@ inline void fixed_block_free(void *data, fixed_block *inblock) {
     }
 }
 
-#ifndef BLOCK_IMPL
+#ifndef FAST_ALLOC_IMPL
+
 #undef SET_NEXT_BLOCK
 #undef GET_NEXT_BLOCK
 #undef GET_BLOCK_DATA
-#undef FAST_ALLOC_PREDICT
-#undef FAST_ALLOC_PREDICT_NOT
+#include "undefs.h"
 #endif
 
 #endif
