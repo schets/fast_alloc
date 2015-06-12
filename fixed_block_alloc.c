@@ -3,6 +3,10 @@
 #include "fixed_block_alloc.h"
 #include <stdlib.h>
 
+#define GET_BLOCK_DATA(inblock) (inblock)
+#define GET_NEXT_BLOCK(inblock) (*(void **)inblock)
+#define SET_NEXT_BLOCK(inblock, next) *((void **)inblock) = (void *) next;
+
 //!assures block size is aligned to sizeof(void *)
 static inline size_t block_size(size_t initial) {
     if (initial <= sizeof(void *))
@@ -43,7 +47,7 @@ fixed_block create_fixed_block_with(size_t unit_size,
 
         void *start = block;
         for(size_t i = 0; i < num_units - 1; i++) {
-            void *next_open = GET_NEXT_BLOCK(start, data_size);
+            void *next_open = (char*)start + data_size;
             SET_NEXT_BLOCK(start, next_open);
             start = next_open;
         }
@@ -52,8 +56,38 @@ fixed_block create_fixed_block_with(size_t unit_size,
     return data;
 }
 
+void destroy_fixed_block(fixed_block inblock) {
+    destroy_fixed_block_with(inblock, fast_alloc_free, 0);
+}
+
 void destroy_fixed_block_with(fixed_block inblock, free_fn_type freefn, void *params) {
     if(inblock.data_blocks != NULL) {
         freefn(inblock.data_blocks, params);
+    }
+}
+
+
+void *fixed_block_alloc(fixed_block *inblock) {
+    if (FAST_ALLOC_PREDICT_NOT(inblock->first_open == NULL))
+        return NULL;
+    void *ret_data = GET_BLOCK_DATA(inblock->first_open);
+    inblock->first_open = GET_NEXT_BLOCK(inblock->first_open);
+    return ret_data;
+};
+
+void fixed_block_free(fixed_block *inblock, void *data) {
+    if (FAST_ALLOC_PREDICT(data != NULL)) {
+
+#ifdef FAST_ALLOC_DEBUG_
+        size_t data_size = inblock->data_size;
+        assert((char*)data <
+               ((char*)inblock->data_blocks + inblock->num_elements * data_size));
+        assert(data >= inblock->data_blocks);
+        assert(((ptrdiff_t)((char*)data - (char*)inblock->data_blocks)
+                % (ptrdiff_t)data_size) == 0);
+        assert(data != inblock->first_open);
+#endif
+        SET_NEXT_BLOCK(data, inblock->first_open);
+        inblock->first_open = data;
     }
 }

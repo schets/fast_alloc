@@ -29,3 +29,17 @@ fixed_stack create_fixed_stack_with(size_t unit_size,
     retstack.curdata = retstack.data_block;
     return retstack;
 }
+
+void *fixed_stack_alloc(fixed_stack *instack) {
+    if (FAST_ALLOC_PREDICT_NOT(instack->curdata == instack->data_end))
+        return NULL;
+    void* ret_data = instack->curdata;
+    instack->curdata = (char *)instack->curdata + instack->data_size;
+    return ret_data;
+};
+
+void fixed_stack_pop(fixed_stack *instack) {
+    if (FAST_ALLOC_PREDICT(instack->curdata != instack->data_block)) {
+        instack->curdata = (char *)instack->curdata - instack->data_size;
+    }
+}

@@ -4,18 +4,6 @@
 #include <stddef.h>
 #include <assert.h>
 
-//template<class T>
-//union block_layout {
-//    block_layout<T> * next_block;
-//    T element_type;
-//};
-
-#define FAST_ALLOC_DEBUG_
-
-#define GET_BLOCK_DATA(inblock) (inblock)
-#define GET_NEXT_BLOCK(inblock, data_size) ((char *)inblock + data_size)
-#define SET_NEXT_BLOCK(inblock, next) *((void **)inblock) = (void *) next;
-
 /**
  * Contains the data required for a fixed_block allocator
  */
@@ -76,13 +64,7 @@ void destroy_fixed_block_with(fixed_block inblock, free_fn_type freefn, void *pa
  *
  * @return A pointer to a unit of memory
  */
-inline void *fixed_block_alloc(fixed_block *inblock) {
-    if (FAST_ALLOC_PREDICT_NOT(inblock->first_open == NULL))
-        return NULL;
-    void *ret_data = GET_BLOCK_DATA(inblock->first_open);
-    inblock->first_open = GET_NEXT_BLOCK(inblock->first_open, inblock->data_size);
-    return ret_data;
-};
+void *fixed_block_alloc(fixed_block *inblock);
 
 /**
  * Frees a block of memory that was allocated by the specified
@@ -97,29 +79,6 @@ inline void *fixed_block_alloc(fixed_block *inblock) {
  * @params data The pointer to be released from the block
  * @params inblock The block to release the pointer from
  */
-inline void fixed_block_free(void *data, fixed_block *inblock) {
-    if (FAST_ALLOC_PREDICT(data != NULL)) {
-
-#ifdef FAST_ALLOC_DEBUG_
-        size_t data_size = inblock->data_size;
-        assert((char*)data <
-               ((char*)inblock->data_blocks + inblock->num_elements * data_size));
-        assert(data >= inblock->data_blocks);
-        assert(((ptrdiff_t)((char*)data - (char*)inblock->data_blocks)
-                % (ptrdiff_t)data_size) == 0);
-        assert(data != inblock->first_open);
-#endif
-        SET_NEXT_BLOCK(data, inblock->first_open);
-        inblock->first_open = data;
-    }
-}
-
-#ifndef FAST_ALLOC_IMPL
-
-#undef SET_NEXT_BLOCK
-#undef GET_NEXT_BLOCK
-#undef GET_BLOCK_DATA
-#include "undefs.h"
-#endif
+void fixed_block_free(fixed_block *inblock, void *data);
 
 #endif

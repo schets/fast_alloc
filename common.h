@@ -20,10 +20,11 @@ void *fast_alloc_malloc(size_t, void *);
 
 //!Pads size to word boundary (sizeof(void *))
 size_t pad_size(size_t initial);
+size_t pad_size_to(size_t initial, size_t align);
 
 
 
-#define FAST_ALLOC_PREDICT(x) (x)
-#define FAST_ALLOC_PREDICT_NOT(x) !(x)
+#define FAST_ALLOC_PREDICT(x) (__builtin_expect(x, 1))
+#define FAST_ALLOC_PREDICT_NOT(x) (__builtin_expect(!(x), 1))
 
 #endif
