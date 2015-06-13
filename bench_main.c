@@ -28,6 +28,9 @@ void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage) {
     for(; i < num; i++) {
         storage[i] = block_alloc(&blk);
     }
+    for(size_t i = 0; i < num; i++) {
+        block_free(&blk, storage[i]);
+    }
     destroy_unfixed_block(blk);
 }
 
