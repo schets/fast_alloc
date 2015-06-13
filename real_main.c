@@ -34,7 +34,6 @@ int main() {
     volatile size_t i = 0;
     void **pointers = (void**)malloc((1 + alloc_num) * sizeof (void *));
     time_call(bench_malloc_batch, "Batch malloc");
-    time_call(bench_malloc_tog, "Together malloc");
     time_call(bench_slab_batch, "Batch fslab");
     time_call(bench_ufslab_batch, "Batch ufslab");
     free(pointers);

@@ -23,7 +23,7 @@ void bench_malloc_tog(size_t num, size_t alloc_size, void **storage) {
 
 void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage) {
     unfixed_block blk;
-    blk = create_unfixed_block(alloc_size / 10, num + 1);
+    blk = create_unfixed_block(20, num + 1);
     volatile size_t i = 0;
     for(; i < num; i++) {
         storage[i] = block_alloc(&blk);
@@ -31,7 +31,7 @@ void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage) {
     for(size_t i = 0; i < num; i++) {
         block_free(&blk, storage[i]);
     }
-    destroy_unfixed_block(blk);
+    destroy_unfixed_block(&blk);
 }
 
 void bench_slab_batch(size_t num, size_t alloc_size, void **storage) {

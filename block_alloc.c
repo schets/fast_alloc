@@ -4,10 +4,10 @@
 #include <stdio.h>
 
 #define GET_BLOB_DATA(x) (x)
-#define SET_NEXT_BLOB(x, newb) *(void **)x = newb;
-#define GET_NEXT_BLOB(x) (*(void **)x)
-#define SET_BLOCK(x, data_size, inb)  *(void **)((char *)x + data_size - sizeof(void *)) = inb;
-#define GET_BLOCK(x, data_size) (*(void **)((char *)x + data_size - sizeof(void *)))
+#define SET_NEXT_BLOB(x, newb) *((void **)x + 1) = newb;
+#define GET_NEXT_BLOB(x) (*((void **)x + 1))
+#define SET_BLOCK(x, data_size, inb)  *(void **)x = inb;
+#define GET_BLOCK(x, data_size) (*(void **)(x))
 
 typedef struct slab {
     struct slab *next, *prev;
@@ -42,6 +42,7 @@ static slab *add_slab(slab *list, slab *newslab) {
 
 static size_t get_proper_size(size_t init_size) {
     size_t blob_size = init_size < sizeof(void *) ? sizeof(void *) : init_size; 
+    blob_size = pad_size_to(blob_size, sizeof(void *));
     return pad_size(blob_size + sizeof(void *));
 }
 
@@ -86,6 +87,7 @@ static void *alloc_slab(unfixed_block *inblock) {
     newslab->first_open = newslab->data;
     newslab->num_alloc = 1;
     inblock->partial = add_slab(inblock->partial, newslab);
+    return unchecked_alloc(inblock->partial);
 }
 
 static void *add_partial(unfixed_block *inblock) {
@@ -171,8 +173,14 @@ static void free_slab_ring(slab *inslab) {
     } 
 }
 
-void destroy_unfixed_block(unfixed_block blk) {
-    free_slab_ring(blk.partial);
-    free_slab_ring(blk.full);
-    free_slab_ring(blk.empty);
+void destroy_unfixed_block(unfixed_block* blk) {
+    free_slab_ring(blk->partial);
+    free_slab_ring(blk->full);
+    free_slab_ring(blk->empty);
+    blk->partial = blk->empty = blk->full = NULL;
+}
+
+void cleanup_block(unfixed_block *blk) {
+    free_slab_ring(blk->empty);
+    blk->empty = NULL;
 }
