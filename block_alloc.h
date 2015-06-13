@@ -26,5 +26,8 @@ typedef struct unfixed_block {
 } unfixed_block;
 
 void *block_alloc(unfixed_block *inblock);
+void block_free(unfixed_block *inblock, void *ptr);
 
+unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num);
+void destroy_unfixed_block(unfixed_block blk);
 #endif

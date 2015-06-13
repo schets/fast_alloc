@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "fixed_block_alloc.h"
 #include "fixed_stack_alloc.h"
+#include "block_alloc.h"
 
 void bench_malloc_batch(size_t num, size_t alloc_size, void **storage) {
     for(size_t i = 0; i < num; i++) {
@@ -18,6 +19,16 @@ void bench_malloc_tog(size_t num, size_t alloc_size, void **storage) {
         storage[i] = malloc(alloc_size);
         free(storage[i]);
     }
+}
+
+void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage) {
+    unfixed_block blk;
+    blk = create_unfixed_block(alloc_size / 10, num + 1);
+    volatile size_t i = 0;
+    for(; i < num; i++) {
+        storage[i] = block_alloc(&blk);
+    }
+    destroy_unfixed_block(blk);
 }
 
 void bench_slab_batch(size_t num, size_t alloc_size, void **storage) {

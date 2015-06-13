@@ -36,7 +36,7 @@ void *fixed_stack_alloc(fixed_stack *instack) {
     void* ret_data = instack->curdata;
     instack->curdata = (char *)instack->curdata + instack->data_size;
     return ret_data;
-};
+}
 
 void fixed_stack_pop(fixed_stack *instack) {
     if (FAST_ALLOC_PREDICT(instack->curdata != instack->data_block)) {
