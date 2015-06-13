@@ -1,5 +1,4 @@
 #include "common.h"
-#include <jemalloc/jemalloc.h>
 #include <stdlib.h>
 //!malloc wrapper
 void *fast_alloc_malloc(size_t size, void *params) {
@@ -23,5 +22,5 @@ size_t pad_size_to(size_t initial, size_t align) {
 }
 
 size_t pad_size(size_t initial) {
-    return pad_size_to(initial, sizeof(void *));
+    return pad_size_to(initial, 16);
 }

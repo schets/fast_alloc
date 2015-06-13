@@ -4,10 +4,10 @@
 #include <stdio.h>
 
 #define GET_BLOB_DATA(x) (x)
-#define SET_NEXT_BLOB(x, newb) *((void **)x + 1) = newb;
-#define GET_NEXT_BLOB(x) (*((void **)x + 1))
-#define SET_BLOCK(x, data_size, inb)  *(void **)x = inb;
-#define GET_BLOCK(x, data_size) (*(void **)(x))
+#define SET_NEXT_BLOB(x, newb) *((void **)x) = newb;
+#define GET_NEXT_BLOB(x) (*((void **)x))
+#define SET_BLOCK(x, data_size, inb)  *(void **)((char *)(x) + data_size - sizeof(void *)) = inb;
+#define GET_BLOCK(x, data_size) (*(void **)((char *)(x) + data_size - sizeof(void *)))
 
 typedef struct slab {
     struct slab *next, *prev;
@@ -34,7 +34,8 @@ static slab *add_slab(slab *list, slab *newslab) {
     else {
         newslab->next = list;
         newslab->prev = list->prev;
-        list->prev->next = newslab;
+        if (list->prev)
+            list->prev->next = newslab;
         list->prev = newslab;
         return list;
     }
@@ -50,22 +51,23 @@ static slab* create_slab_data(size_t blob_size,
                               uint32_t num_blobs,
                               alloc_fn_type alloc,
                               void *params) {
-    void *data_blob = alloc(blob_size * num_blobs + sizeof(slab), params);
-    if (data_blob != NULL) {
-        slab *slab_blob = (slab *)((char *) data_blob + (blob_size * num_blobs));
+    size_t slab_size = pad_size(sizeof(slab));
+    void *full_blob = alloc(blob_size * num_blobs + slab_size, params);
+    if (full_blob != NULL) {
+        void *data_blob = (slab *)full_blob + 1;
         void *cur_blob = data_blob;
         for(uint32_t i = 0; i < num_blobs - 1; i++) {
             SET_NEXT_BLOB(cur_blob, ((char *) cur_blob + blob_size));
-            SET_BLOCK(cur_blob, blob_size, slab_blob);
+            SET_BLOCK(cur_blob, blob_size, full_blob);
             cur_blob = cur_blob + blob_size;
         }
         SET_NEXT_BLOB(cur_blob, NULL);
-        SET_BLOCK(cur_blob, blob_size, slab_blob);
-        slab_blob->data = data_blob;
-        slab_blob->first_open = data_blob;
-        return slab_blob;
+        SET_BLOCK(cur_blob, blob_size, full_blob);
+        ((slab *) full_blob)->data = data_blob;
+        ((slab *) full_blob)->first_open = data_blob;
     }
-    return NULL;
+
+    return (slab *)full_blob;
 }
 
 static inline void *unchecked_alloc(slab *inslab) {
@@ -167,7 +169,7 @@ static void free_slab_ring(slab *inslab) {
         return;
     inslab->prev->next = NULL;
     while(inslab) {
-        void *free_ptr = inslab->data;
+        void *free_ptr = inslab;
         inslab = inslab->next;
         fast_alloc_free(free_ptr, 0);
     } 
