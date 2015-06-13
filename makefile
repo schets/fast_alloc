@@ -1,3 +1,3 @@
 all:
-	clang -g -fsanitize=address -fno-omit-frame-pointer -std=c99 -c *.c
-	clang -fsanitize=address *.o -o a.out
+	gcc -g -fno-omit-frame-pointer -std=c99 -c *.c
+	gcc *.o -o a.out
