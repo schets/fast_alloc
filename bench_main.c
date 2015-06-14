@@ -23,26 +23,28 @@ void bench_malloc_tog(size_t num, size_t alloc_size, void **storage) {
 }
 
 void bench_tree(size_t num, size_t alloc_size, void **storage) {
-    tree mytree = create_tree(alloc_size, num/10);
-    uint32_t mask = 15;
+    uint32_t mask = 0xffff;
+    size_t numiter = mask / 5;
+    numiter = numiter < 20 ? 20 : numiter;
+    tree mytree = create_tree(0, 1001);
     add_tree(&mytree, mask / 2);
     srand(10);
     for(size_t i = 0; i < num; i++) {
         int myval = ((rand() ^ rand()) % 3);
         if (myval == 0)
-            for(size_t j = 0; j < rand() % num; j++) {
+            for(size_t j = 0; j < rand() % numiter; j++) {
                 change_tree(&mytree, rand() & mask);
             }
         else if (myval == 1)
-            for(size_t j = 0; j < rand() % num; j++) {
+            for(size_t j = 0; j < rand() % numiter; j++) {
                 remove_tree(&mytree, rand() & mask);
             }
         else
-            for(size_t j = 0; j < rand() % num; j++) {
+            for(size_t j = 0; j < rand() % numiter; j++) {
                 add_tree(&mytree, rand() & mask);
             }
     }
-    print_tree(&mytree);
+    destroy_tree(&mytree);
 }
 
 void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage) {

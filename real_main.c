@@ -4,7 +4,7 @@
 #include "tests/tree.h"
 
 const static size_t alloc_num = 100000;
-const static size_t repeat = 1;
+const static size_t repeat = 5;
 const static size_t alloc_size = 4;
 volatile size_t size_mod = 2;
 
@@ -54,6 +54,6 @@ int main() {
     time_call(bench_slab_batch, "Batch fslab");
     time_call(bench_ufslab_batch, "Batch ufslab");
     time_call(bench_tree, "Tree");
-    debug_tree();
+    //  debug_tree();
     free(pointers);
 }

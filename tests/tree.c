@@ -20,7 +20,7 @@ static inline node *create_node(tree *intree, uint32_t data) {
 #ifdef UNFIXED_BLOCK
     rval = block_alloc(&intree->blk);
 #else
-    rval = (node *)malloc(sizeof(node));
+    rval = (node *)malloc(sizeof(node) + 10);
 #endif
     rval->data = data;
     rval->child[LEFTV] = rval->child[RIGHTV] = 0;
@@ -167,7 +167,7 @@ tree create_tree (size_t extra, size_t blk_size) {
     tree rval;
     rval.root = NULL;
 #ifdef UNFIXED_BLOCK
-    rval.blk = create_unfixed_block(sizeof(node) + extra, blk_size);
+    rval.blk = create_unfixed_block(sizeof(node), blk_size);
 #endif
     return rval;
 }
