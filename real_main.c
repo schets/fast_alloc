@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include "tests/tree.h"
 
-const static size_t alloc_num = 5000;
-const static size_t repeat = 5000;
+const static size_t alloc_num = 100000;
+const static size_t repeat = 5;
 const static size_t alloc_size = 4;
 volatile size_t size_mod = 2;
 
@@ -16,6 +17,7 @@ void bench_stack_nof(size_t num, size_t alloc_size, void **storage);
 void bench_tog(size_t num, size_t alloc_size, void **storage);
 void bench_batch(size_t num, size_t alloc_size, void **storage);
 void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage); 
+void bench_tree(size_t num, size_t alloc_size, void **storage); 
 
 
 #define time_call(fnname, fstr)                                         \
@@ -31,10 +33,12 @@ void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage);
     }                                                                   \
 
 int main() {
+    srand(time(NULL));
     volatile size_t i = 0;
     void **pointers = (void**)malloc((1 + alloc_num) * sizeof (void *));
     //  time_call(bench_malloc_batch, "Batch malloc");
     time_call(bench_slab_batch, "Batch fslab");
     time_call(bench_ufslab_batch, "Batch ufslab");
+    time_call(bench_tree, "Tree");
     free(pointers);
 }

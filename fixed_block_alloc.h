@@ -46,7 +46,7 @@ fixed_block create_fixed_block_with(size_t unit_size,
  * Frees the memory associated with the block using free
  * @param inblock The fixed_block_allocator that is being destroyed
  */
-void destroy_fixed_block(fixed_block inblock);
+void destroy_fixed_block(fixed_block *inblock);
 
 /**
  * Frees the memory associated with the block using the specified deallocator
@@ -54,7 +54,7 @@ void destroy_fixed_block(fixed_block inblock);
  * @param freefn The function used to deallocate the block's memory
  * @param params A pointer to parameter passed to the deallocator
  */
-void destroy_fixed_block_with(fixed_block inblock, free_fn_type freefn, void *params);
+void destroy_fixed_block_with(fixed_block *inblock, free_fn_type freefn, void *params);
 
 /**
  * Allocates a unit of memory from the passed block. Return NULL if no

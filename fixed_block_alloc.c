@@ -22,7 +22,7 @@ fixed_block create_fixed_block(size_t unit_size,
     return create_fixed_block_with(unit_size, num_units, fast_alloc_malloc, 0);
 }
 
-void destoy_fixed_block(fixed_block inblock) {
+void destroy_fixed_block(fixed_block *inblock) {
     destroy_fixed_block_with(inblock, fast_alloc_free, 0);
 }
 
@@ -56,16 +56,11 @@ fixed_block create_fixed_block_with(size_t unit_size,
     return data;
 }
 
-void destroy_fixed_block(fixed_block inblock) {
-    destroy_fixed_block_with(inblock, fast_alloc_free, 0);
-}
-
-void destroy_fixed_block_with(fixed_block inblock, free_fn_type freefn, void *params) {
-    if(inblock.data_blocks != NULL) {
-        freefn(inblock.data_blocks, params);
+void destroy_fixed_block_with(fixed_block *inblock, free_fn_type freefn, void *params) {
+    if(inblock->data_blocks != NULL) {
+        freefn(inblock->data_blocks, params);
     }
 }
-
 
 void *fixed_block_alloc(fixed_block *inblock) {
     if (FAST_ALLOC_PREDICT_NOT(inblock->first_open == NULL))
