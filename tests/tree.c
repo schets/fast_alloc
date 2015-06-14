@@ -1,4 +1,5 @@
 #include "tree.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 #define LEFTV 0
@@ -21,6 +22,9 @@ static inline node *create_node(tree *intree, uint32_t data) {
 #else
     rval = (node *)malloc(sizeof(node));
 #endif
+    rval->data = data;
+    rval->child[LEFTV] = rval->child[RIGHTV] = 0;
+    return rval;
 }
 
 static inline void free_node(tree* intree, node *innode) {
@@ -162,9 +166,9 @@ void remove_tree(tree *intree, uint32_t data) {
 tree create_tree (size_t extra, size_t blk_size) {
     tree rval;
     rval.root = NULL;
-    #ifdef UNFIXED_BLOCK
+#ifdef UNFIXED_BLOCK
     rval.blk = create_unfixed_block(sizeof(node) + extra, blk_size);
-    #endif
+#endif
     return rval;
 }
 
@@ -178,7 +182,27 @@ static void destroy_nodes(tree *intree, node *cur) {
 
 void destroy_tree(tree *intree) {
     destroy_nodes(intree, intree->root);
-    #ifdef UNFIXED_BLOCK
+#ifdef UNFIXED_BLOCK
     destroy_unfixed_block(&intree->blk);
-    #endif
+#endif
+}
+
+void print_space(size_t depth) {
+    for(size_t i = 0; i < depth; i++) {
+        printf("  ");
+    } 
+}
+
+static void print_nodes(node *cur, size_t depth) {
+    if (cur) {
+        print_nodes(LEFT(cur), depth + 1);
+        print_space(depth);
+        printf("%d\n", cur->data);
+        print_nodes(RIGHT(cur), depth + 1);
+    }
+}
+
+void print_tree(tree *intree) {
+    print_nodes(intree->root, 0);
+    printf("\n");
 }

@@ -23,3 +23,6 @@ void add_tree(tree *, uint32_t);
 tree create_tree (size_t extra, size_t blk_size);
 
 void destroy_tree(tree *intree);
+
+void print_tree(tree *intree);
+
