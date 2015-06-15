@@ -25,7 +25,7 @@ void bench_malloc_tog(size_t num, size_t alloc_size, void **storage) {
 
 void bench_mem(size_t num, size_t alloc_size, void **storage) {
     memset(storage, 0, num * sizeof(void *));
-    unfixed_block blk = create_unfixed_block(alloc_size, 10);
+    struct unfixed_block blk = create_unfixed_block(alloc_size, 10);
     srand(10);
     for(volatile size_t i = 0; i < num*1000; i++) {
         size_t curlen = rand() % 200 + 10;
@@ -42,10 +42,10 @@ void bench_mem(size_t num, size_t alloc_size, void **storage) {
 }
 
 void bench_tree(size_t num, size_t alloc_size, void **storage) {
-    uint32_t mask = 0xfffff;
+    uint32_t mask = 0xffff;
     size_t numiter = mask / 5;
     numiter = numiter < 20 ? 20 : numiter;
-    tree mytree = create_tree(0, numiter/10);
+    tree mytree = create_tree(0, mask + 10);
     void (*fncs[])(tree *, uint32_t) = {change_tree, remove_tree, add_tree};
     srand(10);
     add_tree(&mytree, mask/2);
@@ -59,7 +59,7 @@ void bench_tree(size_t num, size_t alloc_size, void **storage) {
 }
 
 void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage) {
-    unfixed_block blk;
+    struct unfixed_block blk;
     blk = create_unfixed_block(alloc_size, (num/10));
     volatile size_t i = 0;
     for(; i < num; i++) {

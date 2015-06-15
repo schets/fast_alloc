@@ -9,6 +9,7 @@
 #define SET_BLOCK(x, data_size, inb)  *(void **)((char *)(x) + data_size - sizeof(void *)) = inb;
 #define GET_BLOCK(x, data_size) (*(void **)((char *)(x) + data_size - sizeof(void *)))
 
+//only used internally, I'll typedef it for simplicity
 typedef struct slab {
     void *first_open;
     size_t num_alloc;
@@ -70,7 +71,7 @@ static slab* create_slab_data(size_t blob_size,
     return (slab *)full_blob;
 }
 
-static inline void swap_partial(unfixed_block *inblock) {
+static __attribute__ ((noinline)) void swap_partial(struct unfixed_block *inblock) {
     slab *newfull = inblock->partial;
     inblock->partial = remove_slab(newfull);
     inblock->full = add_slab(inblock->full, newfull);
@@ -84,7 +85,7 @@ static inline void *unchecked_alloc(slab *inslab) {
     return data;
 }
 
-static void *alloc_slab(unfixed_block *inblock) {
+static __attribute__ ((noinline)) void *alloc_slab(struct unfixed_block *inblock) {
     slab *newslab = create_slab_data(inblock->data_size,
                                      inblock->unit_num,
                                      inblock->alloc,
@@ -98,7 +99,7 @@ static void *alloc_slab(unfixed_block *inblock) {
     return unchecked_alloc(inblock->partial);
 }
 
-void *block_alloc(unfixed_block *inblock) {
+void *block_alloc(struct unfixed_block *inblock) {
     if (FAST_ALLOC_PREDICT_NOT (!inblock->partial))
         return alloc_slab(inblock);
     
@@ -109,7 +110,7 @@ void *block_alloc(unfixed_block *inblock) {
     return data;
 }
 
-void block_free(unfixed_block *inblock, void *ptr) {
+void block_free(struct unfixed_block *inblock, void *ptr) {
     if (FAST_ALLOC_PREDICT_NOT(ptr == NULL))
         return;
 
@@ -131,8 +132,8 @@ void block_free(unfixed_block *inblock, void *ptr) {
     }
 }
 
-unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num) {
-    unfixed_block blk;
+struct unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num) {
+    struct unfixed_block blk;
     blk.partial = blk.full = NULL;
     blk.data_size = get_proper_size(unit_size);
     blk.unit_num = unit_num < 2 ? 2 : unit_num;
@@ -152,7 +153,7 @@ static void free_slab_ring(slab *inslab) {
     } 
 }
 
-void destroy_unfixed_block(unfixed_block* blk) {
+void destroy_unfixed_block(struct unfixed_block* blk) {
     free_slab_ring(blk->partial);
     free_slab_ring(blk->full);
     blk->partial = blk->full = NULL;

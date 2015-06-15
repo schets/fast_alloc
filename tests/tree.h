@@ -8,7 +8,7 @@ struct node;
 typedef struct tree {
     struct node *root;
     #ifdef UNFIXED_BLOCK
-    unfixed_block blk;
+    struct unfixed_block blk;
     #endif
 } tree;
 
