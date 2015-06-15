@@ -11,6 +11,7 @@
 
 typedef struct slab {
     void *first_open;
+    size_t num_alloc;
     struct slab *next, *prev;
     void *data;
 } slab;
@@ -77,6 +78,7 @@ static inline void swap_partial(unfixed_block *inblock) {
 
 static inline void *unchecked_alloc(slab *inslab) {
     void *first_open = inslab->first_open;
+    inslab->num_alloc++;
     void *data = GET_BLOB_DATA(first_open);
     inslab->first_open = GET_NEXT_BLOB(first_open);
     return data;
@@ -90,6 +92,7 @@ static void *alloc_slab(unfixed_block *inblock) {
     if (newslab == NULL)
         return NULL;
 
+    newslab->num_alloc = 0;
     newslab->first_open = newslab->data;
     inblock->partial = add_slab(inblock->partial, newslab);
     return unchecked_alloc(inblock->partial);
@@ -114,11 +117,17 @@ void block_free(unfixed_block *inblock, void *ptr) {
     char is_full = curslab->first_open == NULL;
     SET_NEXT_BLOB(ptr, curslab->first_open);
     curslab->first_open = ptr;
+    curslab->num_alloc--;
 
     if(FAST_ALLOC_PREDICT_NOT(is_full)) {
         slab *newptr = remove_slab(curslab);
         inblock->full = (curslab == inblock->full ? newptr : inblock->full);
         inblock->partial = add_slab(inblock->partial, curslab);
+    }
+    else if (FAST_ALLOC_PREDICT_NOT(curslab->num_alloc == 0)) {
+        slab *newptr = remove_slab(curslab);
+        inblock->partial = (curslab == inblock->partial ? newptr : inblock->partial);
+        inblock->empty = add_slab(inblock->empty, curslab);
     }
 }
 
