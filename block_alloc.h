@@ -16,7 +16,7 @@
 struct slab;
 
 typedef struct unfixed_block {
-    struct slab *partial, *empty, *full;
+    struct slab *partial, *full;
     size_t data_size;
     size_t unit_num;
     

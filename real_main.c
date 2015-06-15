@@ -4,7 +4,7 @@
 #include "tests/tree.h"
 
 const static size_t alloc_num = 100000;
-const static size_t repeat = 5;
+const static size_t repeat = 1;
 const static size_t alloc_size = 4;
 volatile size_t size_mod = 2;
 
@@ -18,6 +18,7 @@ void bench_tog(size_t num, size_t alloc_size, void **storage);
 void bench_batch(size_t num, size_t alloc_size, void **storage);
 void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage); 
 void bench_tree(size_t num, size_t alloc_size, void **storage); 
+void bench_mem(size_t num, size_t alloc_size, void **storage);
 
 
 #define time_call(fnname, fstr)                                         \
@@ -43,7 +44,6 @@ void debug_tree() {
     remove_tree(&mytree, 1);
     printf("\nNow removing\n");
     print_tree(&mytree);
-
 }
 
 int main() {
@@ -53,7 +53,7 @@ int main() {
     //  time_call(bench_malloc_batch, "Batch malloc");
     time_call(bench_slab_batch, "Batch fslab");
     time_call(bench_ufslab_batch, "Batch ufslab");
-    time_call(bench_tree, "Tree");
+    time_call(bench_mem, "Memcheck");
     //  debug_tree();
     free(pointers);
 }

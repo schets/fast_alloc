@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 #include "fixed_block_alloc.h"
 #include "fixed_stack_alloc.h"
 #include "tests/tree.h"
@@ -22,26 +23,63 @@ void bench_malloc_tog(size_t num, size_t alloc_size, void **storage) {
     }
 }
 
+void bench_mem(size_t num, size_t alloc_size, void **storage) {
+    memset(storage, 0, num * sizeof(void *));
+    unfixed_block blk = create_unfixed_block(alloc_size, 100);
+    srand(10);
+    for(volatile size_t i = 0; i < num*100; i++) {
+        /*     if (storage[curval] ) {
+            block_free(&blk, storage[curval]);
+            storage[curval] = 0;
+        }
+        else {
+            storage[curval] = block_alloc(&blk);
+            }*/
+        for(size_t i = 0; i < 90; i++) {
+            storage[i] = block_alloc(&blk);
+        }
+        for(size_t i = 0; i < 90; i++) {
+            block_free(&blk, storage[i]);
+        }
+    }
+    destroy_unfixed_block(&blk);
+}
+
 void bench_tree(size_t num, size_t alloc_size, void **storage) {
     uint32_t mask = 0xffff;
     size_t numiter = mask / 5;
     numiter = numiter < 20 ? 20 : numiter;
-    tree mytree = create_tree(0, 1001);
-    add_tree(&mytree, mask / 2);
+    tree mytree = create_tree(0, numiter/10);
     srand(10);
     for(size_t i = 0; i < num; i++) {
         int myval = ((rand() ^ rand()) % 3);
+        myval = 2;
         if (myval == 0)
             for(size_t j = 0; j < rand() % numiter; j++) {
-                change_tree(&mytree, rand() & mask);
+                size_t val = rand() & mask;
+                if (val > mask) {
+                    printf("BOGUS!!!!");
+                    return;
+                }
+                change_tree(&mytree, val);
             }
         else if (myval == 1)
             for(size_t j = 0; j < rand() % numiter; j++) {
-                remove_tree(&mytree, rand() & mask);
+                size_t val = rand() & mask;
+                if (val > mask) {
+                    printf("BOGUS!!!!");
+                    return;
+                }
+                remove_tree(&mytree, val);
             }
         else
             for(size_t j = 0; j < rand() % numiter; j++) {
-                add_tree(&mytree, rand() & mask);
+                size_t val = rand() & mask;
+                if (val > mask) {
+                    printf("BOGUS!!!!");
+                    return;
+                }
+                add_tree(&mytree, val);
             }
     }
     destroy_tree(&mytree);

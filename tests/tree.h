@@ -3,7 +3,6 @@
 #include <stdint.h>
 
 struct node;
-
 #define UNFIXED_BLOCK
 
 typedef struct tree {
@@ -12,7 +11,6 @@ typedef struct tree {
     unfixed_block blk;
     #endif
 } tree;
-
 
 //!Removes the element if there, otherwise adds it
 void change_tree(tree *, uint32_t);
