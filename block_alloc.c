@@ -10,9 +10,9 @@
 #define GET_BLOCK(x, data_size) (*(void **)((char *)(x) + data_size - sizeof(void *)))
 
 typedef struct slab {
+    void *first_open;
     struct slab *next, *prev;
     void *data;
-    void *first_open;
 } slab;
 
 static slab *remove_slab (slab *inslab) {
@@ -69,6 +69,12 @@ static slab* create_slab_data(size_t blob_size,
     return (slab *)full_blob;
 }
 
+static inline void swap_partial(unfixed_block *inblock) {
+    slab *newfull = inblock->partial;
+    inblock->partial = remove_slab(newfull);
+    inblock->full = add_slab(inblock->full, newfull);
+}
+
 static inline void *unchecked_alloc(slab *inslab) {
     void *first_open = inslab->first_open;
     void *data = GET_BLOB_DATA(first_open);
@@ -89,31 +95,14 @@ static void *alloc_slab(unfixed_block *inblock) {
     return unchecked_alloc(inblock->partial);
 }
 
-static void *swap_slabs(unfixed_block *inblock) {
-    // move the first partial block to full
-    slab *newfull = inblock->partial;
-    inblock->partial = remove_slab(newfull);
-    inblock->full = add_slab(inblock->full, newfull);
-
-    if (FAST_ALLOC_PREDICT(inblock->partial != NULL))
-        return unchecked_alloc(inblock->partial);
-
-    // if no partial blocks left, add another one
-    return alloc_slab(inblock);
-
-}
-
 void *block_alloc(unfixed_block *inblock) {
     if (FAST_ALLOC_PREDICT_NOT (!inblock->partial))
         return alloc_slab(inblock);
     
-    void *first_open = inblock->partial->first_open;
+    void *data = unchecked_alloc(inblock->partial);
+    if (FAST_ALLOC_PREDICT_NOT(inblock->partial->first_open == NULL))
+        swap_partial(inblock);
 
-    if (FAST_ALLOC_PREDICT_NOT(!first_open))
-        return swap_slabs(inblock);
-
-    void *data = GET_BLOB_DATA(first_open);
-    inblock->partial->first_open = GET_NEXT_BLOB(first_open);
     return data;
 }
 
@@ -137,7 +126,7 @@ unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num) {
     unfixed_block blk;
     blk.partial = blk.full = NULL;
     blk.data_size = get_proper_size(unit_size);
-    blk.unit_num = unit_num;
+    blk.unit_num = unit_num < 2 ? 2 : unit_num;
     blk.alloc = fast_alloc_malloc;
     blk.alloc_params = 0;
     return blk;
