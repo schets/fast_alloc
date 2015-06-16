@@ -3,8 +3,8 @@
 #include <stdint.h>
 
 struct node;
-#define UNFIXED_BLOCK
 
+#define UNFIXED_BLOCK
 typedef struct tree {
     struct node *root;
     #ifdef UNFIXED_BLOCK
@@ -20,6 +20,8 @@ void remove_tree(tree *, uint32_t);
 
 //!adds element to tree
 void add_tree(tree *, uint32_t);
+
+char contains(tree *, uint32_t);
 
 tree create_tree (size_t extra, size_t blk_size);
 

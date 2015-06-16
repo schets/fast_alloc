@@ -1,6 +1,7 @@
 #define FAST_ALLOC_IMPL
 
 #include "block_alloc.h"
+#include "stdlib.h"
 #include <stdio.h>
 
 #define GET_BLOB_DATA(x) (x)
@@ -8,6 +9,17 @@
 #define GET_NEXT_BLOB(x) (*((void **)x))
 #define SET_BLOCK(x, data_size, inb)  *(void **)((char *)(x) + data_size - sizeof(void *)) = inb;
 #define GET_BLOCK(x, data_size) (*(void **)((char *)(x) + data_size - sizeof(void *)))
+
+void *mymalloc(struct alloc_type *myalloc, size_t size) {
+    return malloc(size);
+}
+
+void myfree(struct alloc_type *myalloc, void *tofree) {
+    free(tofree);
+}
+
+static struct alloc_type _default_alloc = {mymalloc, myfree};
+struct alloc_type *default_alloc = &_default_alloc;
 
 //only used internally, I'll typedef it for simplicity
 typedef struct slab {
@@ -50,10 +62,9 @@ static size_t get_proper_size(size_t init_size) {
 
 static slab* create_slab_data(size_t blob_size,
                               uint32_t num_blobs,
-                              alloc_fn_type alloc,
-                              void *params) {
+                              struct alloc_type * alloc) {
     size_t slab_size = pad_size(sizeof(slab));
-    void *full_blob = alloc(blob_size * num_blobs + slab_size, params);
+    void *full_blob = alloc->malloc(alloc, blob_size * num_blobs + slab_size);
     if (full_blob != NULL) {
         void *data_blob = (slab *)full_blob + 1;
         void *cur_blob = data_blob;
@@ -71,43 +82,72 @@ static slab* create_slab_data(size_t blob_size,
     return (slab *)full_blob;
 }
 
-static __attribute__ ((noinline)) void swap_partial(struct unfixed_block *inblock) {
+static void swap_partial(struct unfixed_block *inblock) {
     slab *newfull = inblock->partial;
     inblock->partial = remove_slab(newfull);
     inblock->full = add_slab(inblock->full, newfull);
 }
 
-static inline void *unchecked_alloc(slab *inslab) {
+static inline void *unchecked_alloc(struct unfixed_block *inblock) {
+    slab *inslab = inblock->partial;
     void *first_open = inslab->first_open;
     inslab->num_alloc++;
     void *data = GET_BLOB_DATA(first_open);
     inslab->first_open = GET_NEXT_BLOB(first_open);
+    if (FAST_ALLOC_PREDICT_NOT(inblock->partial->first_open == NULL))
+        swap_partial(inblock);
     return data;
 }
 
-static __attribute__ ((noinline)) void *alloc_slab(struct unfixed_block *inblock) {
+static void *alloc_slab(struct unfixed_block *inblock) {
     slab *newslab = create_slab_data(inblock->data_size,
                                      inblock->unit_num,
-                                     inblock->alloc,
-                                     inblock->alloc_params);
+                                     inblock->allocator);
     if (newslab == NULL)
         return NULL;
 
     newslab->num_alloc = 0;
     newslab->first_open = newslab->data;
     inblock->partial = add_slab(inblock->partial, newslab);
-    return unchecked_alloc(inblock->partial);
+    return unchecked_alloc(inblock);
+}
+
+static void *get_partial(struct unfixed_block *inblock) {
+    if(!inblock->empty)
+        return alloc_slab(inblock);
+    else {
+        slab *newpartial = inblock->empty;
+        inblock->empty = remove_slab(newpartial);
+        inblock->partial = add_slab(inblock->partial, newpartial);
+        return unchecked_alloc(inblock);
+    }
 }
 
 void *block_alloc(struct unfixed_block *inblock) {
     if (FAST_ALLOC_PREDICT_NOT (!inblock->partial))
-        return alloc_slab(inblock);
+        return get_partial(inblock);
     
-    void *data = unchecked_alloc(inblock->partial);
-    if (FAST_ALLOC_PREDICT_NOT(inblock->partial->first_open == NULL))
-        swap_partial(inblock);
+    return unchecked_alloc(inblock);
+}
 
-    return data;
+void *block_alloc_hint(struct unfixed_block *inblock, void *hint) {
+    if (FAST_ALLOC_PREDICT_NOT(!hint))
+        return block_alloc(inblock);
+
+    slab *const hintslab = GET_BLOCK(hint, inblock->data_size);
+    if (hintslab->first_open) {
+        void *data = GET_BLOB_DATA(hintslab->first_open);
+        hintslab->first_open = GET_NEXT_BLOB(hintslab-> first_open);
+        if (FAST_ALLOC_PREDICT_NOT(!hintslab->first_open)) {
+                slab *newslab = remove_slab(hintslab);
+                inblock->partial = (hintslab == inblock->partial ? newslab : inblock->partial);
+                inblock->full = add_slab(inblock->full, hintslab);
+        }
+        hintslab->num_alloc++;
+        return data;
+    }
+    else
+        return block_alloc(inblock);
 }
 
 void block_free(struct unfixed_block *inblock, void *ptr) {
@@ -132,29 +172,33 @@ void block_free(struct unfixed_block *inblock, void *ptr) {
     }
 }
 
-struct unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num) {
+struct unfixed_block create_unfixed_block_with(size_t unit_size, size_t unit_num, struct alloc_type *alloc) {
     struct unfixed_block blk;
-    blk.partial = blk.full = NULL;
+    blk.partial = blk.full = blk.empty = NULL;
     blk.data_size = get_proper_size(unit_size);
     blk.unit_num = unit_num < 2 ? 2 : unit_num;
-    blk.alloc = fast_alloc_malloc;
-    blk.alloc_params = 0;
+    blk.allocator = alloc;
     return blk;
 }
 
-static void free_slab_ring(slab *inslab) {
+struct unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num) {
+    return create_unfixed_block_with(unit_size, unit_num, default_alloc);
+}
+
+static void free_slab_ring(struct alloc_type *alloc, slab *inslab) {
     if (!inslab)
         return;
     inslab->prev->next = NULL;
     while(inslab) {
         void *free_ptr = inslab;
         inslab = inslab->next;
-        fast_alloc_free(free_ptr, 0);
+        alloc->free(alloc, free_ptr);
     } 
 }
 
 void destroy_unfixed_block(struct unfixed_block* blk) {
-    free_slab_ring(blk->partial);
-    free_slab_ring(blk->full);
-    blk->partial = blk->full = NULL;
+    free_slab_ring(blk->allocator, blk->partial);
+    free_slab_ring(blk->allocator, blk->full);
+    free_slab_ring(blk->allocator, blk->empty);
+    blk->partial = blk->full = blk->empty = NULL;
 }

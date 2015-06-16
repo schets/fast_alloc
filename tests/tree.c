@@ -15,12 +15,12 @@ typedef struct node {
     uint32_t data;
 } node;
 
-static inline node *create_node(tree *intree, uint32_t data) {
+static inline node *create_node(tree *intree, node *parent, uint32_t data) {
     node *rval;
 #ifdef UNFIXED_BLOCK
     rval = block_alloc(&intree->blk);
 #else
-    rval = (node *)malloc(sizeof(node) + 10);
+    rval = (node *)malloc(sizeof(node));
 #endif
     rval->data = data;
     rval->child[LEFTV] = rval->child[RIGHTV] = 0;
@@ -88,7 +88,7 @@ static void _add_tree(tree *from,
                       uint32_t data,
                       size_t lr) {
     if (!cnode)
-        parent->child[lr] = create_node(from, data);
+        parent->child[lr] = create_node(from, parent, data);
     else if (data < cnode->data)
         _add_tree(from, cnode, LEFT(cnode), data, LEFTV);
     else if (data > cnode->data)
@@ -98,7 +98,7 @@ static void _add_tree(tree *from,
 
 void add_tree(tree *intree, uint32_t data) {
     if (!intree->root)
-        intree->root = create_node(intree, data);
+        intree->root = create_node(intree, NULL, data);
     else
         _add_tree(intree, NULL, intree->root, data, 0);
 }
@@ -109,7 +109,7 @@ static void _change_tree(tree *from,
                          uint32_t data,
                          size_t lr) {
     if (!cnode)
-        parent->child[lr] = create_node(from, data);
+        parent->child[lr] = create_node(from, parent, data);
     else if (data < cnode->data)
         _change_tree(from, cnode, LEFT(cnode), data, LEFTV);
     else if (data > cnode->data)
@@ -124,7 +124,7 @@ static void _change_tree(tree *from,
 void change_tree(tree *intree, uint32_t data) {
     node *cnode = intree->root;
     if (!cnode) 
-        intree->root = create_node(intree, data);
+        intree->root = create_node(intree, NULL, data);
     else if(cnode->data == data) {
         node *rmnode = intree->root;
         intree->root = remove_node_from(NULL, intree->root, 1);
@@ -161,6 +161,19 @@ void remove_tree(tree *intree, uint32_t data) {
     }
     else
         _remove_tree(intree, NULL, intree->root, data, 0);
+}
+
+char _contains(node *cur, uint32_t data) {
+    if (cur) {
+        if (cur->data == data)
+            return 1;
+        return _contains(cur->child[cur->data < data], data);
+    }
+    return 0;
+}
+
+char contains(tree *intree, uint32_t data) {
+    return _contains(intree->root, data);
 }
 
 tree create_tree (size_t extra, size_t blk_size) {

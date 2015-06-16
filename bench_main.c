@@ -42,18 +42,32 @@ void bench_mem(size_t num, size_t alloc_size, void **storage) {
 }
 
 void bench_tree(size_t num, size_t alloc_size, void **storage) {
-    uint32_t mask = 0xffff;
+    uint32_t mask = 0xfffff;
     size_t numiter = mask / 5;
     numiter = numiter < 20 ? 20 : numiter;
-    tree mytree = create_tree(0, mask + 10);
+    tree mytree = create_tree(0, 1000);
     void (*fncs[])(tree *, uint32_t) = {change_tree, remove_tree, add_tree};
     srand(10);
     add_tree(&mytree, mask/2);
-    for(size_t i = 0; i < num; i++) {
-        int myval = ((rand() ^ rand()) % 3);
-        for(size_t j = 0; j < rand() % numiter; j++) {
+    for(size_t i = 0; i < mask/4; i++) {
+        add_tree(&mytree, rand() & mask);
+    }
+    printf("Contructed base tree\n");
+    for(size_t i = 0; i < num*4; i++) {
+        int myval = ((rand() ^ rand()) % 4);
+        size_t limit = rand() % 1000;
+        for(size_t j = 0; j < limit; j++) {
+            if (myval == 3) {
+                if (contains(&mytree, rand() & mask))
+                    rand(); //forcing a side effect so this is evaluated
+            }
             fncs[myval](&mytree, rand() & mask);
         }
+    }
+    printf("Performing Lookups\n");
+    for(size_t i = 0; i < num * numiter / 100; i++) {
+        if (contains(&mytree, rand() & mask))
+            rand(); //forcing a side effect so this is evaluated
     }
     destroy_tree(&mytree);
 }
