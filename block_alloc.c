@@ -91,7 +91,7 @@ static void swap_partial(struct unfixed_block *inblock) {
 static inline void *unchecked_alloc(struct unfixed_block *inblock) {
     slab *inslab = inblock->partial;
     void *first_open = inslab->first_open;
-    inslab->num_alloc++;
+    //  inslab->num_alloc++;
     void *data = GET_BLOB_DATA(first_open);
     inslab->first_open = GET_NEXT_BLOB(first_open);
     if (FAST_ALLOC_PREDICT_NOT(inblock->partial->first_open == NULL))
@@ -113,14 +113,14 @@ static void *alloc_slab(struct unfixed_block *inblock) {
 }
 
 static void *get_partial(struct unfixed_block *inblock) {
-    if(!inblock->empty)
+//    if(!inblock->empty)
         return alloc_slab(inblock);
-    else {
-        slab *newpartial = inblock->empty;
-        inblock->empty = remove_slab(newpartial);
-        inblock->partial = add_slab(inblock->partial, newpartial);
-        return unchecked_alloc(inblock);
-    }
+//    else {
+//        slab *newpartial = inblock->empty;
+//        inblock->empty = remove_slab(newpartial);
+//        inblock->partial = add_slab(inblock->partial, newpartial);
+//        return unchecked_alloc(inblock);
+//    }
 }
 
 void *block_alloc(struct unfixed_block *inblock) {
@@ -143,7 +143,7 @@ void *block_alloc_hint(struct unfixed_block *inblock, void *hint) {
                 inblock->partial = (hintslab == inblock->partial ? newslab : inblock->partial);
                 inblock->full = add_slab(inblock->full, hintslab);
         }
-        hintslab->num_alloc++;
+        //       hintslab->num_alloc++;
         return data;
     }
     else
@@ -158,18 +158,18 @@ void block_free(struct unfixed_block *inblock, void *ptr) {
     char is_full = curslab->first_open == NULL;
     SET_NEXT_BLOB(ptr, curslab->first_open);
     curslab->first_open = ptr;
-    curslab->num_alloc--;
+//    curslab->num_alloc--;
 
     if(FAST_ALLOC_PREDICT_NOT(is_full)) {
         slab *newptr = remove_slab(curslab);
         inblock->full = (curslab == inblock->full ? newptr : inblock->full);
         inblock->partial = add_slab(inblock->partial, curslab);
     }
-    else if (FAST_ALLOC_PREDICT_NOT(curslab->num_alloc == 0)) {
+/*    else if (FAST_ALLOC_PREDICT_NOT(curslab->num_alloc == 0)) {
         slab *newptr = remove_slab(curslab);
         inblock->partial = (curslab == inblock->partial ? newptr : inblock->partial);
         inblock->empty = add_slab(inblock->empty, curslab);
-    }
+        }*/
 }
 
 struct unfixed_block create_unfixed_block_with(size_t unit_size, size_t unit_num, struct alloc_type *alloc) {
