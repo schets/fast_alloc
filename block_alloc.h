@@ -8,11 +8,12 @@ struct alloc_type {
     void (*free)(struct alloc_type *, void *);
 };
 
+
+
 struct unfixed_block {
     struct slab *partial, *full;
     size_t data_size;
     size_t unit_num;
-    
     struct alloc_type *allocator;
 };
 

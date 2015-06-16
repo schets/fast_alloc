@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "tests/tree.h"
 
-const static size_t alloc_num = 10000;
+const static size_t alloc_num = 500000;
 const static size_t repeat = 1;
 const static size_t alloc_size = 4;
 volatile size_t size_mod = 2;
@@ -37,10 +37,10 @@ int main() {
     srand(time(NULL));
     volatile size_t i = 0;
     void **pointers = (void**)malloc((1 + alloc_num) * sizeof (void *));
-    //  time_call(bench_malloc_batch, "Batch malloc");
+    //    time_call(bench_malloc_batch, "Batch malloc");
     //   time_call(bench_slab_batch, "Batch fslab");
     //  time_call(bench_ufslab_batch, "Batch ufslab");
-     time_call(bench_tree, "Treecheck");
+         time_call(bench_mem, "Treecheck");
     //  debug_tree();
     free(pointers);
 }

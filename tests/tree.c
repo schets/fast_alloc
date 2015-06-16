@@ -28,7 +28,8 @@ static inline void free_node(tree* intree, node *innode) {
 }
 
 /*
- *sloppy-ish code below 
+ * sloppy-ish code below
+ * still has memory leak
  */
 
 static node *remove_minmax_from(node *start, size_t lr) {

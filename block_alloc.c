@@ -103,7 +103,6 @@ static void *alloc_slab(struct unfixed_block *inblock) {
                                      inblock->allocator);
     if (newslab == NULL)
         return NULL;
-
     newslab->first_open = newslab->data;
     inblock->partial = add_slab(inblock->partial, newslab);
     return unchecked_alloc(inblock);
@@ -114,25 +113,6 @@ void *block_alloc(struct unfixed_block *inblock) {
         return alloc_slab(inblock);
     
     return unchecked_alloc(inblock);
-}
-
-void *block_alloc_hint(struct unfixed_block *inblock, void *hint) {
-    if (FAST_ALLOC_PREDICT_NOT(!hint))
-        return block_alloc(inblock);
-
-    slab *const hintslab = GET_BLOCK(hint, inblock->data_size);
-    if (hintslab->first_open) {
-        void *data = GET_BLOB_DATA(hintslab->first_open);
-        hintslab->first_open = GET_NEXT_BLOB(hintslab-> first_open);
-        if (FAST_ALLOC_PREDICT_NOT(!hintslab->first_open)) {
-                slab *newslab = remove_slab(hintslab);
-                inblock->partial = (hintslab == inblock->partial ? newslab : inblock->partial);
-                inblock->full = add_slab(inblock->full, hintslab);
-        }
-        return data;
-    }
-    else
-        return block_alloc(inblock);
 }
 
 void block_free(struct unfixed_block *inblock, void *ptr) {

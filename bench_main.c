@@ -25,49 +25,52 @@ void bench_malloc_tog(size_t num, size_t alloc_size, void **storage) {
 
 void bench_mem(size_t num, size_t alloc_size, void **storage) {
     memset(storage, 0, num * sizeof(void *));
-    struct unfixed_block blk = create_unfixed_block(alloc_size, 10);
+    struct unfixed_block blk = create_unfixed_block(alloc_size, 50);
     srand(10);
-    for(volatile size_t i = 0; i < num*1000; i++) {
-        size_t curlen = rand() % 200 + 10;
-        curlen = 20;
-        for(size_t i = 0; i < curlen; i++) {
-            storage[i] = block_alloc(&blk);
+    for(volatile size_t i = 0; i < num*200; i++) {
+        size_t curind = rand() % num;
+        if(storage[curind]) {
+            block_free(&blk, storage[curind]);
+            storage[curind] = 0;
         }
-        for(size_t i = 0; i < curlen; i++) {
+        else {
+            storage[curind] = block_alloc(&blk);
+        }
+    }
+    for(size_t i = 0; i < num; i++) {
+        if (storage[i])
             block_free(&blk, storage[i]);
-        }
-        
     }
     destroy_unfixed_block(&blk);
 }
 
 typedef struct my_alloc {
     struct alloc_type alloc;
-    struct unfixed_block blk;
+    struct unfixed_block *blk;
 } block_alloc_class;
 
 void *alloc_block(struct alloc_type *myalloc, size_t size) {
     block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
-    return block_alloc(&act_alloc->blk);
+    return block_alloc(act_alloc->blk);
 }
 
 void free_block(struct alloc_type *myalloc, void *inptr) {
     block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
-    block_free(&act_alloc->blk, inptr);
+    block_free(act_alloc->blk, inptr);
 }
 
 struct alloc_type block_alloc_base = {alloc_block, free_block};
 
 void bench_tree(size_t num, size_t alloc_size, void **storage) {
-    uint32_t mask = 0xfff;
+    uint32_t mask = 0xff;
     size_t numiter = mask / 5;
     numiter = numiter < 20 ? 20 : numiter;
     numiter = 1000;
     void (*fncs[])(tree *, uint32_t) = {change_tree, remove_tree, add_tree};
     srand(10);
-    struct unfixed_block blk = create_unfixed_block(32, 500);
-    block_alloc_class myclass = {block_alloc_base, blk};
-    tree mytree = create_tree((struct alloc_type *)&myclass);
+    struct unfixed_block blk = create_unfixed_block(32, 10);
+    block_alloc_class myclass = {block_alloc_base, &blk};
+    tree mytree = create_tree((struct alloc_type *)default_alloc);
     add_tree(&mytree, mask/2);
     for(size_t i = 0; i < mask/4; i++) {
         add_tree(&mytree, rand() & mask);
@@ -92,6 +95,7 @@ void bench_tree(size_t num, size_t alloc_size, void **storage) {
             rand(); //forcing a side effect so this is evaluated
     }
     destroy_tree(&mytree);
+    destroy_unfixed_block(&blk);
 }
 
 void bench_ufslab_batch(size_t num, size_t alloc_size, void **storage) {
