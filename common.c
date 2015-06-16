@@ -18,7 +18,7 @@ size_t pad_size_to(size_t initial, size_t align) {
         return align;
     if ((initial % align) == 0)
         return initial;
-    return align - (initial % align);
+    return initial + align - (initial % align);
 }
 
 size_t pad_size(size_t initial) {

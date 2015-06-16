@@ -65,7 +65,7 @@ void bench_tree(size_t num, size_t alloc_size, void **storage) {
     numiter = 1000;
     void (*fncs[])(tree *, uint32_t) = {change_tree, remove_tree, add_tree};
     srand(10);
-    struct unfixed_block blk = create_unfixed_block(20, 500);
+    struct unfixed_block blk = create_unfixed_block(32, 500);
     block_alloc_class myclass = {block_alloc_base, blk};
     tree mytree = create_tree((struct alloc_type *)&myclass);
     add_tree(&mytree, mask/2);
