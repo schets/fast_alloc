@@ -41,14 +41,33 @@ void bench_mem(size_t num, size_t alloc_size, void **storage) {
     destroy_unfixed_block(&blk);
 }
 
+typedef struct my_alloc {
+    struct alloc_type alloc;
+    struct unfixed_block blk;
+} block_alloc_class;
+
+void *alloc_block(struct alloc_type *myalloc, size_t size) {
+    block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
+    return block_alloc(&act_alloc->blk);
+}
+
+void free_block(struct alloc_type *myalloc, void *inptr) {
+    block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
+    block_free(&act_alloc->blk, inptr);
+}
+
+struct alloc_type block_alloc_base = {alloc_block, free_block};
+
 void bench_tree(size_t num, size_t alloc_size, void **storage) {
     uint32_t mask = 0xfff;
     size_t numiter = mask / 5;
     numiter = numiter < 20 ? 20 : numiter;
     numiter = 1000;
-    tree mytree = create_tree(0, 500);
     void (*fncs[])(tree *, uint32_t) = {change_tree, remove_tree, add_tree};
     srand(10);
+    struct unfixed_block blk = create_unfixed_block(20, 500);
+    block_alloc_class myclass = {block_alloc_base, blk};
+    tree mytree = create_tree((struct alloc_type *)&myclass);
     add_tree(&mytree, mask/2);
     for(size_t i = 0; i < mask/4; i++) {
         add_tree(&mytree, rand() & mask);
@@ -68,7 +87,7 @@ void bench_tree(size_t num, size_t alloc_size, void **storage) {
         }
     }
     printf("Performing Lookups\n");
-    for(size_t i = 0; i < num * numiter * 10; i++) {
+    for(size_t i = 0; i < num * numiter / 100; i++) {
         if (contains(&mytree, rand() & mask))
             rand(); //forcing a side effect so this is evaluated
     }

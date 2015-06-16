@@ -33,19 +33,6 @@ void bench_mem(size_t num, size_t alloc_size, void **storage);
                                                                         \
     }                                                                   \
 
-void debug_tree() {
-    tree mytree = create_tree(10, 10);
-    add_tree(&mytree, 3);
-    add_tree(&mytree, 1);
-    add_tree(&mytree, 4);
-    add_tree(&mytree, 2);
-    add_tree(&mytree, 0);
-    print_tree(&mytree);
-    remove_tree(&mytree, 1);
-    printf("\nNow removing\n");
-    print_tree(&mytree);
-}
-
 int main() {
     srand(time(NULL));
     volatile size_t i = 0;

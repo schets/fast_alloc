@@ -9,7 +9,7 @@ struct alloc_type {
 };
 
 struct unfixed_block {
-    struct slab *partial, *full, *empty;
+    struct slab *partial, *full;
     size_t data_size;
     size_t unit_num;
     
@@ -19,7 +19,6 @@ struct unfixed_block {
 extern struct alloc_type *default_alloc;
 
 void *block_alloc(struct unfixed_block *inblock);
-void *block_alloc_hint(struct unfixed_block *inblock, void *hint);
 void block_free(struct unfixed_block *inblock, void *ptr);
 
 struct unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num);

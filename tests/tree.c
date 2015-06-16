@@ -17,22 +17,14 @@ typedef struct node {
 
 static inline node *create_node(tree *intree, node *parent, uint32_t data) {
     node *rval;
-#ifdef UNFIXED_BLOCK
-    rval = block_alloc(&intree->blk);
-#else
-    rval = (node *)malloc(sizeof(node));
-#endif
+    rval = intree->myalloc->malloc(intree->myalloc, sizeof(node));
     rval->data = data;
     rval->child[LEFTV] = rval->child[RIGHTV] = 0;
     return rval;
 }
 
 static inline void free_node(tree* intree, node *innode) {
-#ifdef UNFIXED_BLOCK
-    block_free(&intree->blk, innode);
-#else
-    free(innode);
-#endif
+    intree->myalloc->free(intree->myalloc, innode);
 }
 
 /*
@@ -176,12 +168,10 @@ char contains(tree *intree, uint32_t data) {
     return _contains(intree->root, data);
 }
 
-tree create_tree (size_t extra, size_t blk_size) {
+tree create_tree (struct alloc_type *myalloc) {
     tree rval;
     rval.root = NULL;
-#ifdef UNFIXED_BLOCK
-    rval.blk = create_unfixed_block(sizeof(node), blk_size);
-#endif
+    rval.myalloc = myalloc;
     return rval;
 }
 
@@ -195,9 +185,6 @@ static void destroy_nodes(tree *intree, node *cur) {
 
 void destroy_tree(tree *intree) {
     destroy_nodes(intree, intree->root);
-#ifdef UNFIXED_BLOCK
-    destroy_unfixed_block(&intree->blk);
-#endif
 }
 
 void print_space(size_t depth) {

@@ -4,12 +4,9 @@
 
 struct node;
 
-#define UNFIXED_BLOCK
 typedef struct tree {
     struct node *root;
-    #ifdef UNFIXED_BLOCK
-    struct unfixed_block blk;
-    #endif
+    struct alloc_type *myalloc;
 } tree;
 
 //!Removes the element if there, otherwise adds it
@@ -23,7 +20,7 @@ void add_tree(tree *, uint32_t);
 
 char contains(tree *, uint32_t);
 
-tree create_tree (size_t extra, size_t blk_size);
+tree create_tree (struct alloc_type *inalloc);
 
 void destroy_tree(tree *intree);
 
