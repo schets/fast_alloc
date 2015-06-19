@@ -62,11 +62,11 @@ void free_block(struct alloc_type *myalloc, void *inptr) {
 struct alloc_type block_alloc_base = {alloc_block, free_block};
 
 void bench_tree(size_t num, size_t alloc_size, void **storage) {
-    uint32_t mask = 0xff;
+    uint32_t mask =0x1f;
     size_t numiter = mask / 5;
     numiter = numiter < 20 ? 20 : numiter;
     numiter = 1000;
-    void (*fncs[])(tree *, uint32_t) = {change_tree, remove_tree, add_tree};
+    void (*fncs[])(tree *, uint32_t) = {remove_tree, remove_tree, add_tree};
     srand(10);
     struct unfixed_block blk = create_unfixed_block(32, 10);
     block_alloc_class myclass = {block_alloc_base, &blk};

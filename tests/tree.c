@@ -41,9 +41,10 @@ static node *remove_minmax_from(node *start, size_t lr) {
         par = minn;
         minn = minn->child[lr];
     }
-    if (par)
+    if (par) {
         par->child[lr] = minn->child[OTHERV(lr)];
-    minn->child[OTHERV(lr)] = NULL;
+        minn->child[OTHERV(lr)] = NULL;
+    }
     return minn;
 }
 
