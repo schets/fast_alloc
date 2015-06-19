@@ -70,7 +70,7 @@ void bench_tree(size_t num, size_t alloc_size, void **storage) {
     srand(10);
     struct unfixed_block blk = create_unfixed_block(32, 10);
     block_alloc_class myclass = {block_alloc_base, &blk};
-    tree mytree = create_tree((struct alloc_type *)default_alloc);
+    tree mytree = create_tree((struct alloc_type *)&myclass);
     add_tree(&mytree, mask/2);
     for(size_t i = 0; i < mask/4; i++) {
         add_tree(&mytree, rand() & mask);

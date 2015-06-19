@@ -11,7 +11,8 @@ struct alloc_type {
 
 
 struct unfixed_block {
-    struct slab *partial, *full;
+    void *first_open;
+    struct slab *partial;
     size_t alloc_num;
     size_t data_size;
     size_t unit_num;
