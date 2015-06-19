@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "tests/tree.h"
 
-const static size_t alloc_num = 500000;
+const static size_t alloc_num = 50000;
 const static size_t repeat = 1;
 const static size_t alloc_size = 4;
 volatile size_t size_mod = 2;
