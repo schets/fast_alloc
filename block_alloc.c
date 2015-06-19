@@ -103,6 +103,7 @@ static void *alloc_slab(struct unfixed_block *inblock) {
                                      inblock->allocator);
     if (newslab == NULL)
         return NULL;
+    inblock->alloc_num++;
     newslab->first_open = newslab->data;
     inblock->partial = add_slab(inblock->partial, newslab);
     return unchecked_alloc(inblock);
@@ -137,6 +138,7 @@ struct unfixed_block create_unfixed_block_with(size_t unit_size, size_t unit_num
     blk.data_size = get_proper_size(unit_size);
     blk.unit_num = unit_num < 2 ? 2 : unit_num;
     blk.allocator = alloc;
+    blk.alloc_num = 0;
     return blk;
 }
 
@@ -144,19 +146,24 @@ struct unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num) {
     return create_unfixed_block_with(unit_size, unit_num, default_alloc);
 }
 
-static void free_slab_ring(struct alloc_type *alloc, slab *inslab) {
+static size_t free_slab_ring(struct alloc_type *alloc, slab *inslab) {
     if (!inslab)
-        return;
+        return 0;
+    size_t num = 0;
     inslab->prev->next = NULL;
     while(inslab) {
+        num++;
         void *free_ptr = inslab;
         inslab = inslab->next;
         alloc->free(alloc, free_ptr);
     } 
+    return num;
 }
 
 void destroy_unfixed_block(struct unfixed_block* blk) {
-    free_slab_ring(blk->allocator, blk->partial);
-    free_slab_ring(blk->allocator, blk->full);
+    size_t part = free_slab_ring(blk->allocator, blk->partial);
+    size_t full = free_slab_ring(blk->allocator, blk->full);
     blk->partial = blk->full = NULL;
+    printf("%ld blocks counted, %ld blocks allocated\n", part + full, blk->alloc_num);
+    printf("%ld partial blocks freed, %ld full blocks freed\n", part, full);
 }

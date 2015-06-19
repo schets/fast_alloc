@@ -25,7 +25,7 @@ void bench_malloc_tog(size_t num, size_t alloc_size, void **storage) {
 
 void bench_mem(size_t num, size_t alloc_size, void **storage) {
     memset(storage, 0, num * sizeof(void *));
-    struct unfixed_block blk = create_unfixed_block(alloc_size, 50);
+    struct unfixed_block blk = create_unfixed_block(alloc_size, 5);
     srand(10);
     for(volatile size_t i = 0; i < num*200; i++) {
         size_t curind = rand() % num;
@@ -70,7 +70,7 @@ void bench_tree(size_t num, size_t alloc_size, void **storage) {
     srand(10);
     struct unfixed_block blk = create_unfixed_block(32, 10);
     block_alloc_class myclass = {block_alloc_base, &blk};
-    tree mytree = create_tree((struct alloc_type *)default_alloc);
+    tree mytree = create_tree((struct alloc_type *)&myclass);
     add_tree(&mytree, mask/2);
     for(size_t i = 0; i < mask/4; i++) {
         add_tree(&mytree, rand() & mask);

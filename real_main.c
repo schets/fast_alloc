@@ -40,7 +40,7 @@ int main() {
     //    time_call(bench_malloc_batch, "Batch malloc");
     //   time_call(bench_slab_batch, "Batch fslab");
     //  time_call(bench_ufslab_batch, "Batch ufslab");
-         time_call(bench_mem, "Treecheck");
+         time_call(bench_tree, "Treecheck");
     //  debug_tree();
     free(pointers);
 }
