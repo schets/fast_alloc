@@ -7,6 +7,12 @@
 #include "tests/tree.h"
 #include "block_alloc.h"
 
+//must make my own since rand() has global state/lock
+uint32_t next_rand(uint64_t *state) {
+    *state = 6364136223846793005 * *state + 1442695040888963407;
+    return *state >> 32;
+}
+
 void bench_malloc_batch(size_t num, size_t alloc_size, void **storage) {
     for(size_t i = 0; i < num; i++) {
         storage[i] = malloc(alloc_size);
@@ -54,47 +60,54 @@ void *alloc_block(struct alloc_type *myalloc, size_t size) {
     return block_alloc(act_alloc->blk);
 }
 
+void *alloc_block_hint(struct alloc_type *myalloc, void *hint, size_t size) {
+    block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
+    return block_alloc(act_alloc->blk);
+}
+
 void free_block(struct alloc_type *myalloc, void *inptr) {
     block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
     block_free(act_alloc->blk, inptr);
 }
 
-struct alloc_type block_alloc_base = {alloc_block, free_block};
+
+struct alloc_type block_alloc_base = {alloc_block, alloc_block_hint, free_block};
 
 void bench_tree(size_t num, size_t alloc_size, void **storage) {
-    uint32_t mask =0xffff;
-    size_t numiter = mask / 5;
+    uint64_t randstate = 0xdeadbeef;
+    uint32_t mask = 0xffffff;
+    size_t numiter = mask / 100;
+    size_t op_count = 0;
     numiter = numiter < 20 ? 20 : numiter;
-    numiter = 1000;
-    void (*fncs[])(tree *, uint32_t) = {remove_tree, remove_tree, add_tree};
+    numiter = numiter > 10000 ? 10000 : numiter;
+    void (*fncs[])(tree *, uint32_t) = {remove_tree, change_tree, add_tree};
     srand(10);
-    struct unfixed_block blk = create_unfixed_block(32, 10);
+    struct unfixed_block blk = create_unfixed_block(32, 5000);
     block_alloc_class myclass = {block_alloc_base, &blk};
-    tree mytree = create_tree((struct alloc_type *)default_alloc);
+    tree mytree = create_tree((struct alloc_type *)&myclass);
     add_tree(&mytree, mask/2);
-    for(size_t i = 0; i < mask/4; i++) {
-        add_tree(&mytree, rand() & mask);
+    for(size_t i = 0; i < mask/2; i++) {
+        add_tree(&mytree, next_rand(&randstate) & mask);
     }
     printf("Contructed base tree\n");
     for(size_t i = 0; i < num; i++) {
-        int myval = ((rand() ^ rand()) % 4);
-        size_t limit = rand() % 1000;
+        int myval = (next_rand(&randstate) % 4);
+        size_t limit = next_rand(&randstate) % numiter;
         for(size_t j = 0; j < limit; j++) {
-            if (myval == 3) {
-                if (contains(&mytree, rand() & mask))
-                    rand(); //forcing a side effect so this is evaluated
-            }
+            if (myval == 3)
+                contains(&mytree, next_rand(&randstate) & mask);
             else {
-                fncs[myval](&mytree, rand() & mask);
+                fncs[myval](&mytree, next_rand(&randstate) & mask);
+                op_count++;
             }
         }
     }
+    printf("%ld operations performed\n", op_count);
     printf("Performing Lookups\n");
-    for(size_t i = 0; i < num * numiter / 100; i++) {
-        if (contains(&mytree, rand() & mask))
-            rand(); //forcing a side effect so this is evaluated
+    for(size_t i = 0; i < num; i++) {
+        contains(&mytree, next_rand(&randstate) & mask);
     }
-    destroy_tree(&mytree);
+    // destroy_tree(&mytree);
     destroy_unfixed_block(&blk);
 }
 

@@ -22,5 +22,5 @@ size_t pad_size_to(size_t initial, size_t align) {
 }
 
 size_t pad_size(size_t initial) {
-    return pad_size_to(initial, 16);
+    return pad_size_to(initial, 8);
 }

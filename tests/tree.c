@@ -17,7 +17,7 @@ typedef struct node {
 
 static inline node *create_node(tree *intree, node *parent, uint32_t data) {
     node *rval;
-    rval = intree->myalloc->malloc(intree->myalloc, sizeof(node));
+    rval = intree->myalloc->malloc_hint(intree->myalloc, parent, sizeof(node));
     rval->data = data;
     rval->child[LEFTV] = rval->child[RIGHTV] = 0;
     return rval;
