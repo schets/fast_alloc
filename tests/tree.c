@@ -17,7 +17,7 @@ typedef struct node {
 
 static inline node *create_node(tree *intree, node *parent, uint32_t data) {
     node *rval;
-    rval = intree->myalloc->malloc_hint(intree->myalloc, parent, sizeof(node));
+    rval = (node *)intree->myalloc->malloc_hint(intree->myalloc, parent, sizeof(node));
     rval->data = data;
     rval->child[LEFTV] = rval->child[RIGHTV] = 0;
     return rval;
@@ -26,11 +26,6 @@ static inline node *create_node(tree *intree, node *parent, uint32_t data) {
 static inline void free_node(tree* intree, node *innode) {
     intree->myalloc->free(intree->myalloc, innode);
 }
-
-/*
- * sloppy-ish code below
- * still has memory leak
- */
 
 static node *remove_minmax_from(node *start, size_t lr) {
     if (!start)
@@ -207,4 +202,16 @@ static void print_nodes(node *cur, size_t depth) {
 void print_tree(tree *intree) {
     print_nodes(intree->root, 0);
     printf("\n");
+}
+
+static size_t _depth(node *innode) {
+    if(innode == NULL)
+        return 0;
+    size_t ldepth = _depth(LEFT(innode));
+    size_t rdepth = _depth(RIGHT(innode));
+    return 1 + (ldepth > rdepth ? ldepth : rdepth);
+}
+
+size_t depth(tree *intree) {
+    return _depth(intree->root);
 }

@@ -26,3 +26,4 @@ void destroy_tree(tree *intree);
 
 void print_tree(tree *intree);
 
+size_t depth(tree *intree);

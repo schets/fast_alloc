@@ -1,9 +1,0 @@
-#ifdef FAST_ALLOC_DEFINES_H
-#ifndef FAST_ALLOC_IMPL
-
-#undef FAST_ALLOC_DEFINES_H
-#undef FAST_ALLOC_PREDICT
-#undef FAST_ALLOC_PREDICT_NOT
-
-#endif
-#endif
