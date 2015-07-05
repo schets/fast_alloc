@@ -57,13 +57,13 @@ struct alloc_type block_alloc_base = {alloc_block, alloc_block_hint, free_block}
 
 void bench_tree(size_t num, size_t alloc_size, void **storage) {
     uint64_t randstate = 0xdeadbeef;
-    uint32_t mask = 0xffffff;
+    uint32_t mask = 0xff7;
     size_t numiter = mask / 100;
     numiter = numiter < 20 ? 20 : numiter;
     numiter = numiter > 10000 ? 10000 : numiter;
-    struct unfixed_block blk = create_unfixed_block(32, 50000);
+    struct unfixed_block blk = create_unfixed_block(32, 500);
     block_alloc_class myclass = {block_alloc_base, &blk};
-    tree mytree = create_tree((struct alloc_type *)default_alloc);
+    tree mytree = create_tree((struct alloc_type *)&myclass);
     add_tree(&mytree, mask/2);
     for(size_t i = 0; i < mask/2; i++) {
         add_tree(&mytree, next_rand(&randstate) & mask);
@@ -79,13 +79,10 @@ void bench_tree(size_t num, size_t alloc_size, void **storage) {
                 fncs[myval](&mytree, next_rand(&randstate) & mask);
             }
         }
-        if (!(i % 100)) {
-            printf("Tree is %ld nodes deep\n", depth(&mytree));
-        }
     }
     for(size_t i = 0; i < num; i++) {
         contains(&mytree, next_rand(&randstate) & mask);
     }
-    // destroy_tree(&mytree);
+    destroy_tree(&mytree);
     destroy_unfixed_block(&blk);
 }

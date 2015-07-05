@@ -9,8 +9,6 @@ struct alloc_type {
     void (*free)(struct alloc_type *, void *);
 };
 
-
-
 struct unfixed_block {
     struct slab *partial, *full;
     size_t alloc_num;

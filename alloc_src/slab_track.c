@@ -14,11 +14,15 @@ void *mymalloc(struct alloc_type *myalloc, size_t size) {
     return malloc(size);
 }
 
+void *mymalloc_hint(struct alloc_type *myalloc, void *hint, size_t size) {
+    return malloc(size);
+}
+
 void myfree(struct alloc_type *myalloc, void *tofree) {
     free(tofree);
 }
 
-static struct alloc_type _default_alloc = {mymalloc, myfree};
+static struct alloc_type _default_alloc = {mymalloc, mymalloc_hint, myfree};
 struct alloc_type *default_alloc = &_default_alloc;
 
 //only used internally, I'll typedef it for simplicity

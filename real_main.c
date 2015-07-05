@@ -8,5 +8,5 @@ void bench_mem(size_t num, size_t alloc_size);
 
 int main() {
     srand(time(NULL));
-    bench_tree(5000, 10, 0);
+    bench_tree(500000, 10, 0);
 }

@@ -1,3 +1,3 @@
 all:
-	clang -g -O3 -std=c99 -c *.c tests/*.c
-	clang *.o -o a.out
+	gcc -O3 -flto -std=c11 -c *.c tests/*.c
+	gcc *.o -flto -o a.out
