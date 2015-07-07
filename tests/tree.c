@@ -15,15 +15,17 @@ typedef struct node {
     uint32_t data;
 } node;
 
-static inline node *create_node(tree *intree, node *parent, uint32_t data) {
+static inline node *create_node(tree *intree, uint32_t data) {
     node *rval;
-    rval = (node *)intree->myalloc->malloc_hint(intree->myalloc, parent, sizeof(node));
+    rval = (node *)intree->myalloc->malloc(intree->myalloc, sizeof(node));
     rval->data = data;
     rval->child[LEFTV] = rval->child[RIGHTV] = 0;
+    intree->elems++;
     return rval;
 }
 
 static inline void free_node(tree* intree, node *innode) {
+    intree->elems--;
     intree->myalloc->free(intree->myalloc, innode);
 }
 
@@ -50,7 +52,7 @@ static node *remove_node_from(node *parent, node *start, size_t from) {
     node *newnode = NULL;
     if (LEFT(start) && RIGHT(start)) {
         // 'randomly' select min node from right or max from left as successor
-        size_t lrv = start->data % 2;
+        size_t lrv = start->data & 1;
         newnode = remove_minmax_from(start->child[OTHERV(lrv)], lrv);
         newnode->child[lrv] = start->child[lrv];
         if (newnode != start->child[OTHERV(lrv)])
@@ -77,7 +79,7 @@ static void _add_tree(tree *from,
                       uint32_t data,
                       size_t lr) {
     if (!cnode)
-        parent->child[lr] = create_node(from, parent, data);
+        parent->child[lr] = create_node(from, data);
     else if (data < cnode->data)
         _add_tree(from, cnode, LEFT(cnode), data, LEFTV);
     else if (data > cnode->data)
@@ -87,7 +89,7 @@ static void _add_tree(tree *from,
 
 void add_tree(tree *intree, uint32_t data) {
     if (!intree->root)
-        intree->root = create_node(intree, NULL, data);
+        intree->root = create_node(intree, data);
     else
         _add_tree(intree, NULL, intree->root, data, 0);
 }
@@ -98,7 +100,7 @@ static void _change_tree(tree *from,
                          uint32_t data,
                          size_t lr) {
     if (!cnode)
-        parent->child[lr] = create_node(from, parent, data);
+        parent->child[lr] = create_node(from, data);
     else if (data < cnode->data)
         _change_tree(from, cnode, LEFT(cnode), data, LEFTV);
     else if (data > cnode->data)
@@ -113,7 +115,7 @@ static void _change_tree(tree *from,
 void change_tree(tree *intree, uint32_t data) {
     node *cnode = intree->root;
     if (!cnode) 
-        intree->root = create_node(intree, NULL, data);
+        intree->root = create_node(intree, data);
     else if(cnode->data == data) {
         node *rmnode = intree->root;
         intree->root = remove_node_from(NULL, intree->root, 1);
@@ -169,6 +171,7 @@ tree create_tree (struct alloc_type *myalloc) {
     tree rval;
     rval.root = NULL;
     rval.myalloc = myalloc;
+    rval.elems = 0;
     return rval;
 }
 
@@ -182,6 +185,8 @@ static void destroy_nodes(tree *intree, node *cur) {
 
 void destroy_tree(tree *intree) {
     destroy_nodes(intree, intree->root);
+    intree->root = NULL;
+    intree->elems = 0;
 }
 
 void print_space(size_t depth) {
@@ -215,3 +220,45 @@ static size_t _depth(node *innode) {
 size_t depth(tree *intree) {
     return _depth(intree->root);
 }
+
+static void _copy_tree(tree *newt, node *old, node *newn) {
+    if (old) {
+        //if even go left first, otherwise right first
+        //random so that locality doesn't favor a direction
+        size_t copdir = old->data & 1; 
+        if (LEFT(old))
+            newn->child[LEFTV] = create_node(newt, LEFT(old)->data);
+        if (RIGHT(old))
+            newn->child[RIGHTV] = create_node(newt, RIGHT(old)->data);
+        if (old->child[copdir])
+            _copy_tree(newt, old->child[copdir], newn->child[copdir]);
+        copdir = OTHERV(copdir);
+        if (old->child[copdir])
+            _copy_tree(newt, old->child[copdir], newn->child[copdir]);
+    }
+}
+
+void copy_tree(tree *old, tree *to) {
+    destroy_tree(to);
+    if (old->root) {
+        to->root = create_node(to, old->root->data);
+        _copy_tree(to, old->root, to->root);
+    }
+}
+
+char _equals(node *a, node *b) {
+    if (a == b)
+        return 1;
+    if ((!a) || (!b))
+        return 0;
+    return (a->data == b->data) && (_equals(LEFT(a), LEFT(b))) && (_equals(RIGHT(a), RIGHT(b)));
+}
+
+char equals(tree *a, tree *b) {
+    return _equals(a->root, b->root);
+}
+
+
+
+
+

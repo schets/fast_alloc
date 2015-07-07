@@ -12,10 +12,8 @@ struct alloc_type {
 struct unfixed_block {
     void *first_open;
     struct slab *partial;
-    size_t alloc_num;
     size_t data_size;
     size_t unit_num;
-    struct alloc_type *allocator;
 };
 
 extern struct alloc_type *default_alloc;
@@ -25,6 +23,5 @@ void *block_alloc_hint(struct unfixed_block *inblock, void *hint);
 void block_free(struct unfixed_block *inblock, void *ptr);
 
 struct unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num);
-struct unfixed_block create_unfixed_block_with(size_t unit_size, size_t unit_num, struct alloc_type *alloc);
 void destroy_unfixed_block(struct unfixed_block *blk);
 #endif

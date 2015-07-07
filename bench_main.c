@@ -4,18 +4,16 @@
 #include <string.h>
 #include "tests/tree.h"
 #include "block_alloc.h"
-
-uint32_t next_rand(uint64_t *state) {
-    *state = 6364136223846793005 * *state + 1442695040888963407;
-    return *state >> 32;
-}
+#include "rand.h"
 
 void bench_mem(size_t num, size_t alloc_size) {
+    rand_s randstate;
+    seed_rand(&randstate, 0xdeadbeef);
     void **storage = (void**)calloc((1 + alloc_size), sizeof(void *));
     struct unfixed_block blk = create_unfixed_block(alloc_size, 5);
     srand(10);
     for(volatile size_t i = 0; i < num*200; i++) {
-        size_t curind = rand() % num;
+        size_t curind = next_rand(&randstate) % num;
         if(storage[curind]) {
             block_free(&blk, storage[curind]);
             storage[curind] = 0;
@@ -36,27 +34,28 @@ typedef struct my_alloc {
     struct unfixed_block *blk;
 } block_alloc_class;
 
-void *alloc_block(struct alloc_type *myalloc, size_t size) {
+static void *alloc_block(struct alloc_type *myalloc, size_t size) {
     block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
     return block_alloc(act_alloc->blk);
 }
 
-void *alloc_block_hint(struct alloc_type *myalloc, void *hint, size_t size) {
+static void *alloc_block_hint(struct alloc_type *myalloc, void *hint, size_t size) {
     block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
     return block_alloc(act_alloc->blk);
 }
 
-void free_block(struct alloc_type *myalloc, void *inptr) {
+static void free_block(struct alloc_type *myalloc, void *inptr) {
     block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
     block_free(act_alloc->blk, inptr);
 }
 
-void (*fncs[])(tree *, uint32_t) = {remove_tree, change_tree, add_tree};
+static void (*fncs[])(tree *, uint32_t) = {remove_tree, change_tree, add_tree};
 
-struct alloc_type block_alloc_base = {alloc_block, alloc_block_hint, free_block};
+static struct alloc_type block_alloc_base = {alloc_block, alloc_block_hint, free_block};
 
-void bench_tree(size_t num, size_t alloc_size, void **storage) {
-    uint64_t randstate = 0xdeadbeef;
+void bench_tree(size_t num) {
+    rand_s randstate;
+    seed_rand(&randstate, 0xdeadbeef);
     uint32_t mask = 0xff7;
     size_t numiter = mask / 100;
     numiter = numiter < 20 ? 20 : numiter;

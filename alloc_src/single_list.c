@@ -1,7 +1,7 @@
 #define FAST_ALLOC_IMPL
 
 #include "single_list.h"
-#include "stdlib.h"
+#include <stdlib.h>
 #include <stdio.h>
 
 static void *mymalloc(struct alloc_type *myalloc, size_t size) {
@@ -30,15 +30,9 @@ typedef struct slab {
     chunk *data;
 } slab;
 
-static size_t get_proper_size(size_t init_size) {
-    size_t blob_size = init_size < sizeof(void *) ? sizeof(void *) : init_size; 
-    return pad_size(blob_size);
-}
-
 static slab* create_slab_data(size_t blob_size,
-                              uint32_t num_blobs,
-                              struct alloc_type * alloc) {
-    void *full_blob = alloc->malloc(alloc, blob_size * num_blobs + sizeof(slab));
+                              uint32_t num_blobs) {
+    void *full_blob = malloc(blob_size * num_blobs + sizeof(slab));
     if (full_blob != NULL) {
         chunk *cur_blob = full_blob;
         for(uint32_t i = 0; i < num_blobs - 1; i++) {
@@ -64,11 +58,9 @@ static inline void *unchecked_alloc(struct unfixed_block *inblock) {
 
 static void *alloc_slab(struct unfixed_block *inblock) {
     slab *newslab = create_slab_data(inblock->data_size,
-                                     inblock->unit_num,
-                                     inblock->allocator);
+                                     inblock->unit_num);
     if (newslab == NULL)
         return NULL;
-    inblock->alloc_num++;
     newslab->next = inblock->partial;
     inblock->partial = newslab;
     inblock->first_open = newslab->data;
@@ -90,33 +82,28 @@ void block_free(struct unfixed_block *inblock, void *ptr) {
     inblock->first_open = ptr;
 }
 
-struct unfixed_block create_unfixed_block_with(size_t unit_size, size_t unit_num, struct alloc_type *alloc) {
+struct unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num) {
     struct unfixed_block blk;
     blk.partial = NULL;
-    blk.data_size = get_proper_size(unit_size);
+    blk.first_open = NULL;
+    blk.data_size = pad_size(unit_size);
     blk.unit_num = unit_num < 2 ? 2 : unit_num;
-    blk.allocator = alloc;
-    blk.alloc_num = 0;
     return blk;
 }
 
-struct unfixed_block create_unfixed_block(size_t unit_size, size_t unit_num) {
-    return create_unfixed_block_with(unit_size, unit_num, default_alloc);
-}
-
-static size_t free_slab_ring(struct alloc_type *alloc, slab *inslab) {
+static size_t free_slab_ring(slab *inslab) {
     size_t num = 0;
     while(inslab) {
         num++;
         void *free_ptr = inslab->data;
         inslab = inslab->next;
-        alloc->free(alloc, free_ptr);
+        free(free_ptr);
     } 
     return num;
 }
 
 void destroy_unfixed_block(struct unfixed_block* blk) {
-    size_t part = free_slab_ring(blk->allocator, blk->partial);
+    size_t part = free_slab_ring(blk->partial);
     blk->partial =  NULL;
-    printf("%ld blocks counted, %ld blocks allocated\n", part, blk->alloc_num);
+    blk->first_open = NULL;
 }
