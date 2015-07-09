@@ -34,7 +34,7 @@ void clear_cache() {
     seed_rand(&rstate, num_bytes);
     for(size_t i = 0; i < num_bytes; i++) {
         uint32_t val = next_rand_to(&rstate, num_bytes);
-        mybytes[val] = ((val >> 24) ^ (val ^ accval)) & 0xff;
+        mybytes[val] = (val ^ accval) & 0xff;
         accval += mybytes[val];
     }
     memset(mybytes, mybytes[0], num_bytes);
@@ -250,20 +250,20 @@ void bench_copy(FILE *outf) {
 double _time_many(tree *lookup, size_t numt, uint32_t mask, rand_s *startstate) {
     clear_cache();
     clock_t ctime = clock();
-    for(size_t i = 0; i < numt * 10; i++) {
+    for(size_t i = 0; i < numt * 5000; i++) {
         size_t lookn = next_rand_to(startstate, numt);
-        for(size_t j = 0; j < 1000; j++)
+        for(size_t j = 0; j < 5; j++)
             contains(lookup + lookn, next_rand_to(startstate, mask));
     }
-    return 1000000 * timediff(ctime, clock()) / (numt * 1000 * 10);
+    return 1000000 * timediff(ctime, clock()) / (numt * 5000 * 5);
 }
 
 double time_many(tree *lookup, size_t numt, uint32_t mask, rand_s startstate) {
     double curmean = 0;
-    for (size_t i = 0; i < 8; i++) {
+    for (size_t i = 0; i < 10; i++) {
         curmean += _time_many(lookup, numt, mask, &startstate);
     }
-    return curmean / 8.0;
+    return curmean / 10.0;
 }
 typedef struct block_tree {
     block_alloc_class myblk;
@@ -284,7 +284,7 @@ void destroy_block_tree(block_tree *det) {
 
 void bench_a_small_copy(uint32_t numt, FILE *outf) {
     static size_t counter = 0;
-    static const size_t maxv = 2e3;
+    static const size_t maxv = 5e2;
     printf("Building tree for %d\n", numt);
     tree *mallocs, *mallocc; //malloc, copy, shuffle
     block_tree *freel, *freelc;
@@ -308,7 +308,7 @@ void bench_a_small_copy(uint32_t numt, FILE *outf) {
     }
 
     //benchmark!
-    printf_f(outf, "numsize %ld\n", meansize / numt);
+    printf_f(outf, "numsize %ld\n", numt);
 
     printf_f(outf, "malloc %f\n", time_many(mallocs, numt, maxv, malr));
 
@@ -338,7 +338,7 @@ void bench_a_small_copy(uint32_t numt, FILE *outf) {
         destroy_unfixed_block(&freel[i].blk);
         mallocs[i] = freelc[i].ctree;
     }
-    printf_f(outf, "free_list_copy %f\n", time_access(mallocs, numt, maxv, freelr));
+    printf_f(outf, "free_list_copy %f\n", time_many(mallocs, numt, maxv, freelr));
 
     for (size_t i = 0; i < numt; i++) {
         create_block_tree(freel + i, 24, 500);
@@ -347,7 +347,7 @@ void bench_a_small_copy(uint32_t numt, FILE *outf) {
         destroy_unfixed_block(&freelc[i].blk);
         mallocs[i] = freel[i].ctree;
     }
-    printf_f(outf, "free_list_shuffle %f\n", time_access(mallocs, numt, maxv, freelr));
+    printf_f(outf, "free_list_shuffle %f\n", time_many(mallocs, numt, maxv, freelr));
     for (size_t i = 0; i < numt; i++) {
         destroy_unfixed_block(&freel[i].blk);
     }
@@ -358,9 +358,10 @@ void bench_a_small_copy(uint32_t numt, FILE *outf) {
 }
 
 void bench_small(FILE *outf) {
-    for (size_t i = 0; i < 3; i++) {
-        for (size_t j = 2; j < 100; j += 2) {
+    for (size_t i = 0; i < 50; i++) {
+        for (size_t j = 1; j < 20; j++)
             bench_a_small_copy(j, outf);
-        }
+        for (size_t j = 20; j <= 50; j += 2)
+            bench_a_small_copy(j, outf);
     }
 }
