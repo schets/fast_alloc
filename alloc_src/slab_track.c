@@ -2,7 +2,6 @@
 
 #include "slab_track.h"
 #include "stdlib.h"
-#include <stdio.h>
 
 #define GET_BLOB_DATA(x) (x)
 #define SET_NEXT_BLOB(x, newb) *((void **)x) = newb;
@@ -168,6 +167,4 @@ void destroy_unfixed_block(struct unfixed_block* blk) {
     size_t part = free_slab_ring(blk->allocator, blk->partial);
     size_t full = free_slab_ring(blk->allocator, blk->full);
     blk->partial = blk->full = NULL;
-    printf("%ld blocks counted, %ld blocks allocated\n", part + full, blk->alloc_num);
-    printf("%ld partial blocks freed, %ld full blocks freed\n", part, full);
 }

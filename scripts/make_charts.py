@@ -24,7 +24,7 @@ def trans_dicts(mainlist):
     def mapfn(val):
         (k, v) = val
         rval = grp_b(concat(v))
-        newval = [(nk, np.median(nv)) for (nk, nv) in rval.iteritems()]
+        newval = [(nk, np.mean(nv)) for (nk, nv) in rval.iteritems()]
         return (k, newval)
     return map(mapfn, mainlist)
 
@@ -55,11 +55,13 @@ def read_copy(inf):
     lines = []
     for (outn, outl) in typedct.items():
         outl = (np.asarray(outl)[sarg])
-        slope, inter, r, p, s = linregress(np.log2(sizes), np.log2(outl))
-        print slope, outn
         cline, = plt.plot(sizes, outl, label=outn)
         lines.append(cline)
-        plt.legend(lines)
+        plt.xlabel('Number of trees being accessed')
+        plt.ylabel('mean ns per tree lookup')
+        plt.ylim(0, 150)
+        plt.title('Access time per lookup vs number of trees being accessed\nfor various allocation schemes', multialignment='center')
+        plt.legend(lines, typedct.keys(), loc='upper left')
     plt.show()
 
 def doread():

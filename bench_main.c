@@ -5,83 +5,108 @@
 #include "tests/tree.h"
 #include "block_alloc.h"
 #include "rand.h"
-
-void bench_mem(size_t num, size_t alloc_size) {
+#define num_go 20
+double _bench_rand_base(size_t num, size_t alloc_size) {
     rand_s randstate;
+    size_t totalall = 0;
     seed_rand(&randstate, 0xdeadbeef);
-    void **storage = (void**)calloc((1 + alloc_size), sizeof(void *));
+    volatile void * volatile * volatile storage = calloc(num, sizeof(void *));
     struct unfixed_block blk = create_unfixed_block(alloc_size, 5);
     srand(10);
-    for(volatile size_t i = 0; i < num*200; i++) {
-        size_t curind = next_rand(&randstate) % num;
+    clock_t clk = clock();
+    for(volatile size_t i = 0; i < num*num_go; i++) {
+        size_t curind = next_rand(&randstate) & num;
         if(storage[curind]) {
-            block_free(&blk, storage[curind]);
             storage[curind] = 0;
         }
         else {
+            totalall++; //each alloc will be paired with a free
+            storage[curind] = (void *)(curind | 1);
+        }
+    }
+    for(size_t i = 0; i < num; i++) {
+        if (storage[i])
+            storage[i] = (void *)1; //just so don't remove this loop
+    }
+    double d = (clock() - clk) * 1.0 / CLOCKS_PER_SEC;
+    destroy_unfixed_block(&blk);
+    return d * 1e9 * 1.0;
+}
+
+double _bench_rand_block(size_t num, size_t alloc_size) {
+    rand_s randstate;
+    size_t totalall = 0;
+    seed_rand(&randstate, 0xdeadbeef);
+    volatile void * volatile * volatile storage = calloc(num, sizeof(void *));
+    struct unfixed_block blk = create_unfixed_block(alloc_size, 100);
+    srand(10);
+    clock_t clk = clock();
+    for(volatile size_t i = 0; i < num*num_go; i++) {
+        size_t curind = next_rand(&randstate) & num;
+        if(storage[curind]) {
+            block_free(&blk, (void *)storage[curind]);
+            storage[curind] = 0;
+        }
+        else {
+            totalall++; //each alloc will be paired with a free
             storage[curind] = block_alloc(&blk);
         }
     }
     for(size_t i = 0; i < num; i++) {
         if (storage[i])
-            block_free(&blk, storage[i]);
+            block_free(&blk, (void *)storage[i]);
     }
+    double d = (clock() - clk) * 1.0 / CLOCKS_PER_SEC;
     destroy_unfixed_block(&blk);
+    return d * 1e9 * 1.0;
 }
 
-typedef struct my_alloc {
-    struct alloc_type alloc;
-    struct unfixed_block *blk;
-} block_alloc_class;
-
-static void *alloc_block(struct alloc_type *myalloc, size_t size) {
-    block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
-    return block_alloc(act_alloc->blk);
-}
-
-static void *alloc_block_hint(struct alloc_type *myalloc, void *hint, size_t size) {
-    block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
-    return block_alloc(act_alloc->blk);
-}
-
-static void free_block(struct alloc_type *myalloc, void *inptr) {
-    block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
-    block_free(act_alloc->blk, inptr);
-}
-
-static void (*fncs[])(tree *, uint32_t) = {remove_tree, change_tree, add_tree};
-
-static struct alloc_type block_alloc_base = {alloc_block, alloc_block_hint, free_block};
-
-void bench_tree(size_t num) {
+double _bench_rand_malloc(size_t num, size_t alloc_size) {
     rand_s randstate;
+    size_t totalall = 0;
     seed_rand(&randstate, 0xdeadbeef);
-    uint32_t mask = 0xff7;
-    size_t numiter = mask / 100;
-    numiter = numiter < 20 ? 20 : numiter;
-    numiter = numiter > 10000 ? 10000 : numiter;
-    struct unfixed_block blk = create_unfixed_block(32, 500);
-    block_alloc_class myclass = {block_alloc_base, &blk};
-    tree mytree = create_tree((struct alloc_type *)&myclass);
-    add_tree(&mytree, mask/2);
-    for(size_t i = 0; i < mask/2; i++) {
-        add_tree(&mytree, next_rand(&randstate) & mask);
-    }
-    printf("Tree is %ld nodes deep\n", depth(&mytree));
-    for(size_t i = 0; i < num; i++) {
-        int myval = (next_rand(&randstate) % 4);
-        size_t limit = next_rand(&randstate) % numiter;
-        for(size_t j = 0; j < limit; j++) {
-            if (myval == 3)
-                contains(&mytree, next_rand(&randstate) & mask);
-            else {
-                fncs[myval](&mytree, next_rand(&randstate) & mask);
-            }
+    volatile void * volatile * volatile storage = calloc(num, sizeof(void *));
+    srand(10);
+    clock_t clk = clock();
+    for(volatile size_t i = 0; i < num*num_go; i++) {
+        size_t curind = next_rand(&randstate) & num;
+        if(storage[curind]) {
+            free((void *)storage[curind]);
+            storage[curind] = 0;
+        }
+        else {
+            totalall++; //each alloc will be paired with a free
+            storage[curind] = malloc(alloc_size);
         }
     }
     for(size_t i = 0; i < num; i++) {
-        contains(&mytree, next_rand(&randstate) & mask);
+        if (storage[i])
+            free((void *)storage[i]);
     }
-    destroy_tree(&mytree);
-    destroy_unfixed_block(&blk);
+    double d = (clock() - clk) * 1.0 / CLOCKS_PER_SEC;
+    printf("%ld\n", totalall);
+    return d * 1e9 * 1.0;
+}
+
+void bench_rand(size_t num, size_t alloc_size) {
+    double block_m, block_b, block_l;
+    block_b = block_l = block_m = 0;
+    const size_t num_round = 50;
+    for(size_t i = 0; i < num_round; i++) {
+        block_b += _bench_rand_base(num, alloc_size);
+    }
+    block_b /= num_round;
+    for(size_t i = 0; i < num_round; i++) {
+        block_l += _bench_rand_block(num, alloc_size);
+    }
+    block_l /= num_round;
+    block_l -= block_b;
+    for(size_t i = 0; i < num_round; i++) {
+        block_m += _bench_rand_malloc(num, alloc_size);
+    }
+    block_m /= num_round;
+    block_m -= block_b;
+    size_t num_alloc = 20000032;
+    printf("base time is %f, block time is %f, malloc time is %f\n", block_b, block_l, block_m);
+    printf("ns per malloc: %f, ns per list_alloc: %f\n", (block_m/num_alloc), (block_l/num_alloc));
 }

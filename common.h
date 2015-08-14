@@ -26,5 +26,6 @@ size_t pad_size_to(size_t initial, size_t align);
 
 #define FAST_ALLOC_PREDICT(x) (__builtin_expect(x, 1))
 #define FAST_ALLOC_PREDICT_NOT(x) (__builtin_expect(x, 0))
+#define noinline __attribute__ ((noinline))
 
 #endif

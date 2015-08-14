@@ -56,7 +56,7 @@ static inline void *unchecked_alloc(struct unfixed_block *inblock) {
     return data;
 }
 
-static void *alloc_slab(struct unfixed_block *inblock) {
+static noinline void *alloc_slab(struct unfixed_block *inblock) {
     slab *newslab = create_slab_data(inblock->data_size,
                                      inblock->unit_num);
     if (newslab == NULL)

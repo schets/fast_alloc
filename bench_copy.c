@@ -132,26 +132,16 @@ typedef struct {
 } block_alloc_class;
 
 static void *alloc_block(struct alloc_type *myalloc, size_t size) {
-    __asm__ ("nop"
-             "alloc:"
-             "nop");
     block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
     return block_alloc(act_alloc->blk);
 }
 
 static void *alloc_block_hint(struct alloc_type *myalloc, void *hint, size_t size) {
-    __asm__ ("nop"
-             "hint:"
-             "nop");
-
-    block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
+        block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
     return block_alloc(act_alloc->blk);
 }
 
 static void free_block(struct alloc_type *myalloc, void *inptr) {
-    __asm__ ("nop"
-             "free:"
-             "nop");
     block_alloc_class *act_alloc = (block_alloc_class *)myalloc;
     block_free(act_alloc->blk, inptr);
 }
@@ -250,20 +240,20 @@ void bench_copy(FILE *outf) {
 double _time_many(tree *lookup, size_t numt, uint32_t mask, rand_s *startstate) {
     clear_cache();
     clock_t ctime = clock();
-    for(size_t i = 0; i < numt * 5000; i++) {
+    for(size_t i = 0; i < numt * 200; i++) {
         size_t lookn = next_rand_to(startstate, numt);
         for(size_t j = 0; j < 5; j++)
             contains(lookup + lookn, next_rand_to(startstate, mask));
     }
-    return 1000000 * timediff(ctime, clock()) / (numt * 5000 * 5);
+    return 1000000000 * timediff(ctime, clock()) / (numt * 200 * 5);
 }
 
 double time_many(tree *lookup, size_t numt, uint32_t mask, rand_s startstate) {
     double curmean = 0;
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 5; i++) {
         curmean += _time_many(lookup, numt, mask, &startstate);
     }
-    return curmean / 10.0;
+    return curmean / 5.0;
 }
 typedef struct block_tree {
     block_alloc_class myblk;
@@ -358,10 +348,16 @@ void bench_a_small_copy(uint32_t numt, FILE *outf) {
 }
 
 void bench_small(FILE *outf) {
-    for (size_t i = 0; i < 50; i++) {
+    for (size_t i = 0; i < 70; i++) {
         for (size_t j = 1; j < 20; j++)
             bench_a_small_copy(j, outf);
         for (size_t j = 20; j <= 50; j += 2)
+            bench_a_small_copy(j, outf);
+        for (size_t j = 50; j < 200; j += 5)
+            bench_a_small_copy(j, outf);
+        for (size_t j = 200; j < 500; j += 10)
+            bench_a_small_copy(j, outf);
+        for (size_t j = 500; j < 1000; j += 50)
             bench_a_small_copy(j, outf);
     }
 }
